@@ -29,13 +29,16 @@ Use the separate `bardbox` repo as the standards and reference source for protoc
 ## Quick Start
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv raspi/venv
+source raspi/venv/bin/activate
 pip install -r requirements.txt
-uvicorn raspi.main:app --reload --app-dir .
+uvicorn raspi.main:app --reload
 ```
 
 Then open [http://127.0.0.1:8000](http://127.0.0.1:8000).
+
+Run both Git commands and app-launch commands from the repo root. The `raspi/`
+folder is the app package; do not `cd raspi` and run `uvicorn main:app`.
 
 ## Repo Layout
 
@@ -74,7 +77,9 @@ This template should be kept aligned with the Bard Box standards repo, especiall
 
 ## Local Notes
 
+- The starter dashboard uses a simulated example driver.
+- Displayed readings are generated in software for template validation.
+- The clock and timestamps come from the host operating system time.
 - The example app serves fake but realistic normalized readings.
 - No real hardware is required to boot the template.
 - The header already includes a Bard logo, a human-readable deployment title, and a live clock.
-

@@ -1,11 +1,11 @@
 import math
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
 class ExampleDriver:
-    def __init__(self, uid: str = "bb-0000", config: Dict[str, Any] | None = None):
+    def __init__(self, uid: str = "bb-0000", config: Optional[Dict[str, Any]] = None):
         self.uid = uid
         self.config = config or {}
         self._started_at = time.time()
@@ -14,7 +14,7 @@ class ExampleDriver:
         return {
             "uid": self.uid,
             "source_type": "example_sensor",
-            "transport": "simulated",
+            "transport": "serial",
             "protocol": "example",
             "firmware": None,
         }
@@ -49,4 +49,3 @@ class ExampleDriver:
             },
             "raw": None,
         }
-
