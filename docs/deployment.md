@@ -1,12 +1,17 @@
 # Deployment
 
-Typical deployment flow:
+Typical flow:
 
-1. Copy this template for the new installation.
+1. Create a new repo from `bardbox-project-template`.
 2. Edit `raspi/config/app_config.example.json`.
-3. Replace `raspi/drivers/example_driver.py`.
-4. Install requirements on the Raspberry Pi.
-5. Run the app with `uvicorn` or a systemd service.
+3. Set `poll_interval_ms` and `node_stale_after_s`.
+4. Replace the example driver with deployment drivers.
+5. Replace the PlatformIO firmware example with device firmware.
+6. Install requirements on the Raspberry Pi.
+7. Run with `uvicorn` or a systemd service.
 
-Recommended next step after first boot: add a real config file outside version control and point the app at it with `BARDBOX_APP_CONFIG`.
+Use `BARDBOX_APP_CONFIG` to point the app at deployment config outside version
+control.
 
+The backend is responsible for freshness detection. Stale or unavailable nodes
+must return `null` data values and a clear status.

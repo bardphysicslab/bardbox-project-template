@@ -1,13 +1,16 @@
 # Overview
 
-This repo is the deployment starter for a Bard Box project.
+This repo is the BardBox reference implementation and template for new monitor
+projects.
 
 It includes:
 
-- a Raspberry Pi app skeleton
-- an example Bard Box-style driver
-- a minimal dashboard
-- starter docs and helper scripts
+- a runnable FastAPI Pi app
+- an example driver
+- normalized freshness-aware API responses
+- an RKC-style dark BardBox dashboard
+- a PlatformIO firmware example
+- starter tests and deployment scripts
 
-The template is intentionally generic. It should be customized per deployment, while staying consistent with the separate Bard Box standards repo.
-
+The standards source of truth is the separate `bardbox` repo. Keep this
+template aligned with that spec.

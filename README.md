@@ -1,30 +1,38 @@
 # bardbox-project-template
 
-`bardbox-project-template` is the standard starter repo for new Bard Box deployments.
+`bardbox-project-template` is the BardBox reference implementation and GitHub
+template repo. New monitor projects should be created from this repo.
 
-It is a deployment template: a small, runnable Pi app with an example driver, a minimal dashboard, starter scripts, and example config. It is meant to be copied and customized for a specific installation.
+The canonical standards live in the separate `bardbox` repo. This template
+implements those standards in working code: FastAPI backend, example driver,
+dark BardBox dashboard, PlatformIO firmware example, scripts, docs, and tests.
 
-## What This Repo Is
+## Repo Roles
 
-- A starter template for new Bard Box deployments
-- A Pi app skeleton that already runs with example data
-- A clean place to swap in real drivers, config, and deployment identity
+`bardbox` is the standards/specification repo.
 
-## What This Repo Is Not
+`bardbox-project-template` is the reference implementation/template repo.
 
-- Not the canonical Bard Box standards/spec repo
-- Not the place to define protocol or architecture standards
-- Not a hardware-specific project
+Workflow:
 
-Use the separate `bardbox` repo as the standards and reference source for protocol, reading format, driver boundaries, runtime structure, and UI conventions.
+1. Protocol or UI rule changes are documented first in `bardbox`.
+2. Then they are implemented in `bardbox-project-template`.
+3. New monitor repos are created from `bardbox-project-template`.
+4. Existing monitor repos like GoLab, RKC, Solar, and CESH Air should be updated from the template standard when practical.
+5. Project-specific repos should not invent protocol behavior unless it is promoted back into `bardbox` and `bardbox-project-template`.
 
-## Expected Workflow
+Goal: one documented standard, one reference implementation, many project instances.
 
-1. Copy or clone this template for a new deployment.
-2. Change the deployment title and `app_id`.
-3. Replace the example driver with one or more real drivers.
-4. Add real deployment config.
-5. Run locally, then deploy to the Raspberry Pi.
+## What This Template Provides
+
+- FastAPI Raspberry Pi app
+- normalized reading API
+- node freshness handling with `ok`, `stale`, `error`, and `node_unavailable`
+- current node UID examples using `bb-<site>-<type>-<instance>`
+- example driver contract
+- RKC-style dark BardBox dashboard
+- VS Code + PlatformIO firmware example
+- tests for stale/unavailable behavior
 
 ## Quick Start
 
@@ -35,51 +43,43 @@ pip install -r requirements.txt
 uvicorn raspi.main:app --reload
 ```
 
-Then open [http://127.0.0.1:8000](http://127.0.0.1:8000).
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
-Run both Git commands and app-launch commands from the repo root. The `raspi/`
-folder is the app package; do not `cd raspi` and run `uvicorn main:app`.
+Run commands from the repo root. The `raspi/` folder is a Python package; do
+not `cd raspi` and run `uvicorn main:app`.
 
-## Repo Layout
+## First Customizations
+
+1. Edit `raspi/config/app_config.example.json`.
+2. Replace or add drivers under `raspi/drivers/`.
+3. Replace the PlatformIO firmware example under `firmware/`.
+4. Adjust dashboard labels and metric choices while preserving BardBox status/null behavior.
+5. Add project-specific docs under `docs/`.
+
+New node UIDs must use `bb-<site>-<type>-<instance>`, for example
+`bb-prj-air-001`. Legacy `bb-0001` style IDs remain supported for existing
+deployments but are deprecated.
+
+During migration, add `legacy_uids` to a driver config to accept old
+device-reported IDs while normalizing API/dashboard output to the canonical UID.
+Historical logs are not rewritten.
+
+## Firmware
+
+Firmware uses VS Code + PlatformIO, not the Arduino IDE. Arduino framework
+libraries are acceptable through PlatformIO.
+
+Expected structure:
 
 ```text
-bardbox-project-template/
-  docs/        deployment-facing notes
-  firmware/    starter firmware area for Bard Box nodes
-  raspi/       Pi app, drivers, config, templates, static assets
-  scripts/     helper scripts for setup, restart, health checks
-  tests/       starter test notes
-  data/        runtime data directory
+firmware/
+  platformio.ini
+  src/main.cpp
+  include/
+  lib/
 ```
-
-## First Things To Customize
-
-1. `raspi/config/app_config.example.json`
-   Change `app_id`, `title`, mode, and driver list.
-2. `raspi/drivers/example_driver.py`
-   Replace the example driver with a real one.
-3. `raspi/main.py`
-   Wire in your real drivers and deployment-specific routes only where needed.
-4. `raspi/templates/index.html`
-   Adjust the dashboard content for your deployment.
-5. `raspi/static/Bard-Web-Logos/bard-logo-red.png`
-   Confirm the approved Bard branding asset placement for your deployment.
 
 ## Standards Reference
 
-This template should be kept aligned with the Bard Box standards repo, especially for:
-
-- Pi runtime structure
-- driver separation
-- normalized reading format
-- config-driven deployment
-- monitor header/layout conventions
-
-## Local Notes
-
-- The starter dashboard uses a simulated example driver.
-- Displayed readings are generated in software for template validation.
-- The clock and timestamps come from the host operating system time.
-- The example app serves fake but realistic normalized readings.
-- No real hardware is required to boot the template.
-- The header already includes a Bard logo, a human-readable deployment title, and a live clock.
+Use `bardbox` as the specification repo for protocol, reading format, driver
+boundaries, UI standards, channel names, and design decisions.

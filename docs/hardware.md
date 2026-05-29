@@ -1,13 +1,13 @@
 # Hardware
 
-This template does not assume any specific instrument or sensor.
+This template does not assume a specific sensor or instrument.
 
 Expected layers:
 
-1. Device / firmware layer
-2. Pi driver layer
-3. Pi application layer
-4. Deployment-specific config
+1. Device firmware using the BardBox compact protocol.
+2. Pi driver that parses and normalizes readings.
+3. Pi backend that applies freshness policy.
+4. Dashboard that displays status badges and null values correctly.
 
-Replace the example firmware and example driver with deployment-specific implementations.
-
+Firmware development uses VS Code + PlatformIO. Devices report readings; the Pi
+decides whether a node is stale or unavailable.

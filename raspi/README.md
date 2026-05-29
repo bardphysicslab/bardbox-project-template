@@ -1,17 +1,17 @@
 # Raspberry Pi App
 
-This is the deployment-facing Pi app layer.
+This is the reference BardBox Pi app layer.
 
-Rules for customization:
+Rules:
 
-- keep hardware-specific protocol parsing inside drivers
+- keep hardware protocol parsing inside drivers
 - keep deployment identity in config
-- keep `main.py` as the orchestrator
-- return normalized readings only from drivers
+- keep `main.py` as orchestration and API policy
+- return normalized readings only
+- track last successful communication and last valid reading per node
+- never present cached values as live after timeout or communication failure
 
-The included app runs immediately with the example driver and example config.
-
-Local development is expected from the repo root:
+Local development:
 
 ```bash
 python3 -m venv raspi/venv
@@ -20,9 +20,8 @@ pip install -r requirements.txt
 uvicorn raspi.main:app --reload
 ```
 
-Do not `cd raspi` and run `uvicorn main:app --reload`. The `raspi/` folder is
-the app package, and imports are expected to resolve from repo root.
+Run from repo root, not inside `raspi/`.
 
-The starter dashboard uses a simulated example driver. Displayed readings are
-generated in software, and the clock/timestamps come from the host operating
-system time by default.
+The API returns `ok`, `stale`, `error`, or `node_unavailable`. For stale,
+error, and unavailable readings, data values are `null` and dashboards render
+them as `—`.
