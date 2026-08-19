@@ -15,3 +15,10 @@ control.
 
 The backend is responsible for freshness detection. Stale or unavailable nodes
 must return `null` data values and a clear status.
+
+## BardBox Operations
+
+After `git pull`, run `python3 scripts/sync_app_config.py` to preview missing
+example fields. Run `python3 scripts/sync_app_config.py --write` only after
+reviewing the output. The recursive merge preserves deployment-specific values,
+secrets, and unknown local fields and writes the live file atomically.
