@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-sudo systemctl restart bardbox-monitor
-sudo systemctl status bardbox-monitor --no-pager
+SERVICE_NAME="${1:-bardbox-app.service}"
 
+sudo systemctl restart "$SERVICE_NAME"
+sudo systemctl status "$SERVICE_NAME" --no-pager

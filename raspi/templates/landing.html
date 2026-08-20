@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/static/bardbox.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="site-header">
+        <div class="brand">
+          <img src="/static/Bard-Web-Logos/bard-logo-red.png" alt="Bard College" />
+          <h1>BardBox</h1>
+        </div>
+        <nav class="nav-links" aria-label="Primary"><a href="/monitor">Monitor</a></nav>
+      </header>
+      <section class="intro">
+        <h2>{{ title }}</h2>
+        <p>Live device status and environmental readings.</p>
+      </section>
+      <section class="landing-grid" aria-label="Application views">
+        <a class="landing-card" href="/monitor">
+          <h3>Live monitor</h3>
+          <p>Current values, node health, status details, and historical-data presentation.</p>
+        </a>
+        <div class="landing-card">
+          <h3>Service identity</h3>
+          <p>{{ app_id }}</p>
+        </div>
+      </section>
+      <footer class="site-footer">BardBox reference application</footer>
+    </main>
+  </body>
+</html>

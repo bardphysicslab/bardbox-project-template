@@ -7,3 +7,6 @@ __pycache__/
 .env
 data/*
 !data/.gitkeep
+
+# Server-local deployment configuration (may contain secrets)
+raspi/config/app_config.json

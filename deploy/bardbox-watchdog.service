@@ -1,0 +1,11 @@
+[Unit]
+Description=BardBox application health watchdog
+
+[Service]
+Type=oneshot
+StateDirectory=bardbox-watchdog
+Environment=BARDBOX_HEALTH_URL=http://127.0.0.1:8000/health
+Environment=BARDBOX_SERVICE_NAME=bardbox-app.service
+Environment=BARDBOX_FAILURE_LIMIT=3
+Environment=BARDBOX_FAILURE_FILE=/var/lib/bardbox-watchdog/failures
+ExecStart=/opt/bardbox-app/scripts/watchdog.sh

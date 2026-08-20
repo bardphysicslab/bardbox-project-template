@@ -11,11 +11,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from raspi.drivers.example_driver import ExampleDriver
+from raspi.data_api import create_data_api_router
 
 
 BASE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BASE_DIR.parent
 STATIC_DIR = BASE_DIR / "static"
 TEMPLATES_DIR = BASE_DIR / "templates"
+READINGS_DATA_DIR = PROJECT_ROOT / "data" / "readings"
 DEFAULT_CONFIG_PATH = BASE_DIR / "config" / "app_config.example.json"
 APP_CONFIG_PATH = BASE_DIR / "config" / "app_config.json"
 
@@ -40,6 +43,7 @@ def load_config() -> Dict[str, Any]:
 
 
 APP_CONFIG = load_config()
+app.include_router(create_data_api_router(READINGS_DATA_DIR, APP_CONFIG))
 NODE_STALE_AFTER_S = float(APP_CONFIG.get("node_stale_after_s", 15))
 NODE_STATE: Dict[str, Dict[str, Any]] = {}
 DRIVER_UIDS: Dict[int, str] = {}
@@ -210,6 +214,18 @@ def latest_readings() -> List[Dict[str, Any]]:
 
 
 @app.get("/")
+def landing(request: Request):
+    return templates.TemplateResponse(
+        "landing.html",
+        {
+            "request": request,
+            "title": APP_CONFIG.get("title", "Example Deployment Monitor"),
+            "app_id": APP_CONFIG.get("app_id", "bb-example-monitor"),
+        },
+    )
+
+
+@app.get("/monitor")
 def dashboard(request: Request):
     return templates.TemplateResponse(
         "index.html",
@@ -220,6 +236,12 @@ def dashboard(request: Request):
             "poll_interval_ms": APP_CONFIG.get("poll_interval_ms", 1000),
         },
     )
+
+
+@app.get("/health")
+async def health():
+    # Lightweight endpoint for automated watchdog and health monitoring.
+    return {"status": "ok"}
 
 
 @app.get("/time")

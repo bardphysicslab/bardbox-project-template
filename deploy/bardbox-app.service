@@ -1,0 +1,15 @@
+[Unit]
+Description=BardBox web application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bardbox
+WorkingDirectory=/opt/bardbox-app
+ExecStart=/opt/bardbox-app/venv/bin/uvicorn raspi.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
