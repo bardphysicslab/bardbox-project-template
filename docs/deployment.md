@@ -22,10 +22,24 @@ must return `null` data values and a clear status.
 
 ## BardBox Operations
 
-After `git pull`, run `python3 scripts/sync_app_config.py` to preview missing
-example fields. Run `python3 scripts/sync_app_config.py --write` only after
-reviewing the output. The recursive merge preserves deployment-specific values,
-secrets, and unknown local fields and writes the live file atomically.
+After `git pull`, and before restarting, run
+`python3 scripts/sync_app_config.py --check`. This is a non-writing deployment
+gate and exits non-zero when example keys or matching-node fields are missing.
+Use `python3 scripts/sync_app_config.py --dry-run` for an informational preview,
+then `python3 scripts/sync_app_config.py --write` only after reviewing the
+output. Apply mode creates a timestamped backup and atomically replaces the live
+file. The recursive merge preserves deployment-specific values, secrets,
+unknown local fields, and local-only nodes; example-only nodes are not created.
+
+Do not restart until a repeat check visibly reports:
+
+```text
+Added keys: none
+Added node fields: none
+```
+
+Complete deployment in this order: pull, check, review/apply, clean check,
+restart, `/health` verification, and an application smoke test.
 
 ## Required web-service availability
 

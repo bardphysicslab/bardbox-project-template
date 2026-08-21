@@ -92,11 +92,17 @@ boundaries, UI standards, channel names, and design decisions.
 
 ## BardBox Operations
 
-Preview configuration synchronization after pulling source updates:
+After every source update, check whether the ignored live configuration needs
+migration. Check mode performs no writes and exits non-zero if additions are
+pending:
 
 ```bash
-python3 scripts/sync_app_config.py
+python3 scripts/sync_app_config.py --check
 ```
+
+An informational preview is also available as either
+`python3 scripts/sync_app_config.py` or
+`python3 scripts/sync_app_config.py --dry-run`.
 
 Apply the reviewed merge with:
 
@@ -106,6 +112,19 @@ python3 scripts/sync_app_config.py --write
 
 The canonical BardBox synchronizer recursively adds new example fields while
 preserving deployment values, secrets, and unknown local fields.
+It matches nodes by UID, preserves local-only nodes, and does not automatically
+create example-only nodes. Apply mode first creates a timestamped backup and
+then atomically replaces the live file.
+
+A deployment is ready to restart only when the check reports:
+
+```text
+Added keys: none
+Added node fields: none
+```
+
+The deployment sequence is: pull, check, review/apply additions, check again,
+restart, verify `/health`, and smoke-test the application.
 
 `raspi/config/app_config.example.json` is sanitized and version controlled.
 Copy it to ignored `raspi/config/app_config.json` for local or production
