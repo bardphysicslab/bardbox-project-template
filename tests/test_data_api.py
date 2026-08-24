@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 
 from fastapi import FastAPI
 
-from raspi.data_api import create_data_api_router
+from software.app.data_api import create_data_api_router
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -107,7 +107,9 @@ class DataApiTests(unittest.TestCase):
                 self.assertEqual(status, 503)
 
     def test_committed_example_is_disabled_and_contains_only_empty_placeholder(self):
-        config = json.loads((ROOT / "raspi" / "config" / "app_config.example.json").read_text(encoding="utf-8"))
+        config = json.loads(
+            (ROOT / "software" / "app" / "config" / "app_config.example.json").read_text(encoding="utf-8")
+        )
         self.assertEqual(config["data_api"], {"token": ""})
 
     def test_recursive_listing_includes_nested_quantaq_and_excludes_non_csv(self):

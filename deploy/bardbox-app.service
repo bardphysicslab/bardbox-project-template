@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 User=bardbox
 WorkingDirectory=/opt/bardbox-app
-ExecStart=/opt/bardbox-app/venv/bin/uvicorn raspi.main:app --host 0.0.0.0 --port 8000
+ExecStart=/opt/bardbox-app/software/app/venv/bin/uvicorn software.app.main:app --host 0.0.0.0 --port 8000
 Restart=always
 RestartSec=5
 

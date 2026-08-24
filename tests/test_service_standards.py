@@ -3,13 +3,17 @@ import json
 import unittest
 from pathlib import Path
 
-from raspi import main
+from software.app import main
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class ServiceStandardsTests(unittest.TestCase):
+    def test_runtime_paths_stay_at_repository_root(self):
+        self.assertEqual(main.PROJECT_ROOT, ROOT)
+        self.assertEqual(main.READINGS_DATA_DIR, ROOT / "data" / "readings")
+
     def test_health_is_exact_and_side_effect_free(self):
         self.assertEqual(asyncio.run(main.health()), {"status": "ok"})
 
@@ -37,13 +41,16 @@ class ServiceStandardsTests(unittest.TestCase):
         self.assertNotIn('${BASE_URL}/app/health', script)
 
     def test_example_config_has_empty_data_api_token(self):
-        config = json.loads((ROOT / "raspi" / "config" / "app_config.example.json").read_text(encoding="utf-8"))
+        config = json.loads(
+            (ROOT / "software" / "app" / "config" / "app_config.example.json").read_text(encoding="utf-8")
+        )
         self.assertEqual(config["data_api"], {"token": ""})
 
     def test_reference_ui_demonstrates_standard_components(self):
-        dashboard = (ROOT / "raspi" / "templates" / "index.html").read_text(encoding="utf-8")
-        landing = (ROOT / "raspi" / "templates" / "landing.html").read_text(encoding="utf-8")
-        stylesheet = (ROOT / "raspi" / "static" / "bardbox.css").read_text(encoding="utf-8")
+        app_root = ROOT / "software" / "app"
+        dashboard = (app_root / "templates" / "index.html").read_text(encoding="utf-8")
+        landing = (app_root / "templates" / "landing.html").read_text(encoding="utf-8")
+        stylesheet = (app_root / "static" / "bardbox.css").read_text(encoding="utf-8")
         self.assertIn('class="landing-grid"', landing)
         self.assertIn('class="node-grid"', dashboard)
         self.assertIn('<details class="foldout">', dashboard)

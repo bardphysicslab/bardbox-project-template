@@ -3,11 +3,12 @@
 Typical flow:
 
 1. Create a new repo from `bardbox-project-template`.
-2. Keep `raspi/config/app_config.example.json` sanitized; copy it to ignored
-   `raspi/config/app_config.json` for deployment values.
+2. Keep `software/app/config/app_config.example.json` sanitized; copy it to
+   ignored `software/app/config/app_config.json` for deployment values.
 3. Set `poll_interval_ms` and `node_stale_after_s`.
 4. Replace the example driver with deployment drivers.
-5. Replace the PlatformIO firmware example with device firmware.
+5. Replace the PlatformIO firmware example under `software/firmware/` with
+   device firmware.
 6. Install requirements on the Raspberry Pi.
 7. Adapt and install the systemd service and watchdog examples under `deploy/`.
 8. Verify both `/health` and three-failure watchdog recovery.

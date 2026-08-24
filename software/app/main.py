@@ -10,12 +10,12 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from raspi.drivers.example_driver import ExampleDriver
-from raspi.data_api import create_data_api_router
+from software.app.data_api import create_data_api_router
+from software.app.drivers.example_driver import ExampleDriver
 
 
 BASE_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = BASE_DIR.parent
+PROJECT_ROOT = BASE_DIR.parent.parent
 STATIC_DIR = BASE_DIR / "static"
 TEMPLATES_DIR = BASE_DIR / "templates"
 READINGS_DATA_DIR = PROJECT_ROOT / "data" / "readings"

@@ -1,5 +1,6 @@
 .venv/
-raspi/venv/
+software/app/venv/
+software/firmware/.pio/
 __pycache__/
 *.pyc
 *.pyo
@@ -9,4 +10,4 @@ data/*
 !data/.gitkeep
 
 # Server-local deployment configuration (may contain secrets)
-raspi/config/app_config.json
+software/app/config/app_config.json

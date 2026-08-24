@@ -42,23 +42,23 @@ Goal: one documented standard, one reference implementation, many project instan
 ## Quick Start
 
 ```bash
-python3 -m venv raspi/venv
-source raspi/venv/bin/activate
+python3 -m venv software/app/venv
+source software/app/venv/bin/activate
 pip install -r requirements.txt
-uvicorn raspi.main:app --reload
+uvicorn software.app.main:app --reload
 ```
 
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000). The landing page links to
 the reference detail dashboard at `/monitor`.
 
-Run commands from the repo root. The `raspi/` folder is a Python package; do
-not `cd raspi` and run `uvicorn main:app`.
+Run commands from the repo root. The `software/app/` folder is a Python package;
+do not `cd software/app` and run `uvicorn main:app`.
 
 ## First Customizations
 
-1. Edit `raspi/config/app_config.example.json`.
-2. Replace or add drivers under `raspi/drivers/`.
-3. Replace the PlatformIO firmware example under `firmware/`.
+1. Edit `software/app/config/app_config.example.json`.
+2. Replace or add drivers under `software/app/drivers/`.
+3. Replace the PlatformIO firmware example under `software/firmware/`.
 4. Adjust dashboard labels and metric choices while preserving BardBox status/null behavior.
 5. Add project-specific docs under `docs/`.
 
@@ -75,10 +75,28 @@ Historical logs are not rewritten.
 Firmware uses VS Code + PlatformIO, not the Arduino IDE. Arduino framework
 libraries are acceptable through PlatformIO.
 
-Expected structure:
+## Repository Layout
 
 ```text
-firmware/
+project/
+├── software/
+│   ├── app/
+│   └── firmware/
+├── hardware/
+│   ├── ecad/
+│   └── mcad/
+├── data/
+├── deploy/
+├── docs/
+├── scripts/
+├── tests/
+└── README.md
+```
+
+Firmware-specific structure:
+
+```text
+software/firmware/
   platformio.ini
   src/main.cpp
   include/
@@ -126,9 +144,9 @@ Added node fields: none
 The deployment sequence is: pull, check, review/apply additions, check again,
 restart, verify `/health`, and smoke-test the application.
 
-`raspi/config/app_config.example.json` is sanitized and version controlled.
-Copy it to ignored `raspi/config/app_config.json` for local or production
-deployment values. Never place real secrets in the example.
+`software/app/config/app_config.example.json` is sanitized and version
+controlled. Copy it to ignored `software/app/config/app_config.json` for local
+or production deployment values. Never place real secrets in the example.
 
 ## Availability Standard
 

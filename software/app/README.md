@@ -14,13 +14,13 @@ Rules:
 Local development:
 
 ```bash
-python3 -m venv raspi/venv
-source raspi/venv/bin/activate
+python3 -m venv software/app/venv
+source software/app/venv/bin/activate
 pip install -r requirements.txt
-uvicorn raspi.main:app --reload
+uvicorn software.app.main:app --reload
 ```
 
-Run from repo root, not inside `raspi/`.
+Run from repo root, not inside `software/app/`.
 
 The API returns `ok`, `stale`, `error`, or `node_unavailable`. For stale,
 error, and unavailable readings, data values are `null` and dashboards render

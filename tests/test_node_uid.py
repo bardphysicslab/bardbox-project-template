@@ -1,6 +1,6 @@
 import unittest
 
-from raspi import main
+from software.app import main
 
 
 class NodeUidTests(unittest.TestCase):

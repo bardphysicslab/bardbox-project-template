@@ -13,8 +13,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_EXAMPLE_PATH = REPO_ROOT / "raspi" / "config" / "app_config.example.json"
-DEFAULT_LIVE_PATH = REPO_ROOT / "raspi" / "config" / "app_config.json"
+DEFAULT_EXAMPLE_PATH = REPO_ROOT / "software" / "app" / "config" / "app_config.example.json"
+DEFAULT_LIVE_PATH = REPO_ROOT / "software" / "app" / "config" / "app_config.json"
 
 
 class SyncSummary:

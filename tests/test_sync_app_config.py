@@ -15,6 +15,13 @@ sys.path.insert(0, str(REPO_ROOT))
 from scripts import sync_app_config as sync
 
 
+def test_default_paths_use_nested_application_layout():
+    assert sync.DEFAULT_EXAMPLE_PATH == (
+        REPO_ROOT / "software" / "app" / "config" / "app_config.example.json"
+    )
+    assert sync.DEFAULT_LIVE_PATH == REPO_ROOT / "software" / "app" / "config" / "app_config.json"
+
+
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")

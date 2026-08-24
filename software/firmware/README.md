@@ -6,7 +6,7 @@ The Arduino framework is acceptable, but it should be used through PlatformIO
 rather than the Arduino IDE. Keep deployment firmware in this structure:
 
 ```text
-firmware/
+software/firmware/
   platformio.ini
   src/main.cpp
   include/
