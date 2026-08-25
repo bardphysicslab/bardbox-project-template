@@ -107,6 +107,10 @@ software/firmware/
 
 Use `bardbox` as the specification repo for protocol, reading format, driver
 boundaries, UI standards, channel names, and design decisions.
+Network-uploading firmware must follow the canonical
+[BardBox Web Node Protocol](https://github.com/bardphysicslab/bardbox/blob/main/docs/web-node-protocol.md);
+this template keeps only a concise implementation checklist in
+`docs/device-instructions.md`.
 
 ## BardBox Operations
 
