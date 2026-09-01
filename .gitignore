@@ -8,6 +8,7 @@ __pycache__/
 .env
 data/*
 !data/.gitkeep
+reports/config_sync_report.txt
 
 # Server-local deployment configuration (may contain secrets)
 software/app/config/app_config.json
