@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_EXAMPLE_PATH = REPO_ROOT / "software" / "app" / "config" / "app_config.example.json"
 DEFAULT_LIVE_PATH = REPO_ROOT / "software" / "app" / "config" / "app_config.json"
+DEFAULT_REPORT_PATH = REPO_ROOT / "reports" / "config_sync_report.txt"
 
 
 class SyncSummary:
@@ -30,22 +31,30 @@ class SyncSummary:
     def migration_required(self) -> bool:
         return bool(self.added_keys or self.added_node_fields or self.added_driver_fields)
 
+    def render(self) -> str:
+        sections = [
+            render_list("Added keys", self.added_keys),
+            render_list("Added node fields", self.added_node_fields),
+            render_list("Added driver fields", self.added_driver_fields),
+            render_list("Preserved local values", self.preserved_local_values),
+            render_list("Skipped/unchanged sections", self.skipped_sections),
+            f"Migration required: {'yes' if self.migration_required else 'no'}",
+        ]
+        return "\n".join(sections)
+
     def print(self) -> None:
-        print_list("Added keys", self.added_keys)
-        print_list("Added node fields", self.added_node_fields)
-        print_list("Added driver fields", self.added_driver_fields)
-        print_list("Preserved local values", self.preserved_local_values)
-        print_list("Skipped/unchanged sections", self.skipped_sections)
-        print(f"Migration required: {'yes' if self.migration_required else 'no'}")
+        print(self.render())
+
+
+def render_list(label: str, values: List[str]) -> str:
+    if not values:
+        return f"{label}: none"
+    return "\n".join([f"{label}:", *(f"  - {value}" for value in values)])
 
 
 def print_list(label: str, values: List[str]) -> None:
-    if not values:
-        print(f"{label}: none")
-        return
-    print(f"{label}:")
-    for value in values:
-        print(f"  - {value}")
+    """Backward-compatible output helper."""
+    print(render_list(label, values))
 
 
 def load_json(path: Path) -> Dict[str, Any]:
@@ -87,12 +96,7 @@ def merge_dicts(
             _added_target(summary, entry_kind).append(summary_path)
         elif isinstance(example_value, dict) and isinstance(local[key], dict):
             merged[key] = merge_dicts(
-                example_value,
-                local[key],
-                summary,
-                key_path,
-                entry_kind,
-                entry_uid,
+                example_value, local[key], summary, key_path, entry_kind, entry_uid
             )
         elif (
             key in {"nodes", "drivers"}
@@ -182,6 +186,28 @@ def safe_write_json(path: Path, value: Dict[str, Any]) -> None:
                 pass
 
 
+def write_report(
+    path: Path,
+    summary: SyncSummary,
+    example_path: Path,
+    live_path: Path,
+    write: bool,
+    now: Optional[datetime] = None,
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    timestamp = (now or datetime.now()).astimezone().isoformat(timespec="seconds")
+    mode = "write" if write else "check/dry-run"
+    text = (
+        f"Config sync report\n"
+        f"Generated: {timestamp}\n"
+        f"Mode: {mode}\n"
+        f"Example: {example_path}\n"
+        f"Live: {live_path}\n\n"
+        f"{summary.render()}\n"
+    )
+    path.write_text(text, encoding="utf-8")
+
+
 def synchronize(
     example_path: Path,
     live_path: Path,
@@ -211,6 +237,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--example", type=Path, default=DEFAULT_EXAMPLE_PATH)
     parser.add_argument("--live", type=Path, default=DEFAULT_LIVE_PATH)
+    parser.add_argument(
+        "--report",
+        type=Path,
+        default=DEFAULT_REPORT_PATH,
+        help="Report path (overwritten on every run)",
+    )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--write", action="store_true", help="Back up and atomically update the live config")
     mode.add_argument("--dry-run", action="store_true", help="Preview migration requirements without writing")
@@ -222,11 +254,13 @@ def main() -> int:
     args = parse_args()
     summary, _ = synchronize(args.example, args.live, write=args.write)
     summary.print()
+    write_report(args.report, summary, args.example, args.live, args.write)
     if args.write:
         print(f"Updated: {args.live}")
         print(f"Backup: {summary.backup_path or 'none (live config was created)'}")
     else:
         print("DRY RUN: no files were modified.")
+    print(f"Report: {args.report}")
     return 1 if args.check and summary.migration_required else 0
 
 
