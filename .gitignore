@@ -9,6 +9,7 @@ __pycache__/
 data/*
 !data/.gitkeep
 reports/config_sync_report.txt
+reports/git_diff.txt
 
 # Server-local deployment configuration (may contain secrets)
 software/app/config/app_config.json
