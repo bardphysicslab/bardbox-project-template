@@ -1,0 +1,14 @@
+project = "bardbox-project-template"
+project_type = "monitor"
+bardbox_protocol = "0.3"
+
+[tests]
+command = "pytest"
+
+[service]
+name = "bardbox-project-template"
+health_url = "http://127.0.0.1:8000/health"
+
+[[config]]
+example = "software/app/config/app_config.example.json"
+runtime = "software/app/config/app_config.json"
