@@ -108,7 +108,6 @@ public:
     }
 
     bool shouldAttemptRecovery(uint32_t nowMs) const {
-        if (snapshot_.state == SensorHealthState::Failed) return false;
         if (snapshot_.consecutiveFaults < policy_.recoverAfterConsecutiveFaults) return false;
         if (snapshot_.lastRecoveryAttemptMs == 0) return true;
         return static_cast<uint32_t>(nowMs - snapshot_.lastRecoveryAttemptMs) >= policy_.recoveryCooldownMs;
