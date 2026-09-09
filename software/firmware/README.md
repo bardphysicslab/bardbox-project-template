@@ -27,3 +27,21 @@ The example UID is `bb-prj-air-001`. New UIDs must follow
 Firmware only reports readings. It does not decide whether a node is stale or
 unavailable; the Raspberry Pi/backend tracks communication freshness and
 normalizes stale or unavailable API values to `null`.
+
+## Reliability building blocks
+
+New firmware may reuse these sensor- and transport-agnostic headers:
+
+- `include/BardBoxSensorHealth.h`: tracks good samples, consecutive faults,
+  recovery attempts, recovery failure, and stale readings. Individual drivers
+  define their own validity limits, rate-of-change rules, and recovery action.
+- `include/BardBoxTransportRecovery.h`: tracks acknowledgements and returns
+  a bounded recovery step: reconnect, reinitialize the network client, then
+  optional device restart.
+
+They are policy/state helpers, not complete networking or sensor drivers. A
+Web Node still must persist before upload, retry oldest-first, delete only after
+a `2xx` acknowledgement, and keep sampling separate from uploads. A restart
+hook is optional and must only be enabled after it has been tested on the
+deployed hardware. Publish the resulting health state through additive
+`INFO`/payload diagnostics.
