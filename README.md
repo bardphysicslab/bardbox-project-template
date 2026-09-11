@@ -36,15 +36,56 @@ Goal: one documented standard, one reference implementation, many project instan
 - optional fail-closed read-only historical Data API
 - canonical safe configuration synchronizer
 - conditional verified-backup guidance and Tailscale deployment checklist
+- root `bardbox.toml` project/service/config metadata for shared BardBox tooling
+- isolated Python 3.12 development environment
+- Dev Container and GitHub Actions test environment
 - VS Code + PlatformIO firmware example
 - tests for stale/unavailable behavior
 
-## Quick Start
+## Development Setup
+
+Each BardBox repository owns its own Python environment. Do not run this project
+from another BardBox repository's `.venv`; dependency leakage between repos can
+hide or create failures that are not reproducible elsewhere.
+
+From the repository root:
 
 ```bash
-python3 -m venv software/app/venv
-source software/app/venv/bin/activate
-pip install -r requirements.txt
+/opt/homebrew/bin/python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements-dev.txt
+python -m pytest
+```
+
+Runtime dependencies remain in `requirements.txt`; development/test additions
+are in `requirements-dev.txt`.
+
+The repository also includes a Python 3.12 Dev Container. A clean Linux smoke
+test can be run with:
+
+```bash
+docker build \
+  -f .devcontainer/Dockerfile \
+  -t bardbox-project-template-dev \
+  .
+
+docker run --rm \
+  -v "$PWD":/workspaces/bardbox-project-template \
+  -w /workspaces/bardbox-project-template \
+  bardbox-project-template-dev \
+  sh -lc "python -m pip install -r requirements-dev.txt && python -m pytest"
+```
+
+A template change should pass both the repository's isolated local environment
+and the clean Linux container before it is treated as a portable BardBox
+foundation change.
+
+## Quick Start
+
+With the repository's `.venv` active:
+
+```bash
 uvicorn software.app.main:app --reload
 ```
 
@@ -56,11 +97,12 @@ do not `cd software/app` and run `uvicorn main:app`.
 
 ## First Customizations
 
-1. Edit `software/app/config/app_config.example.json`.
-2. Replace or add drivers under `software/app/drivers/`.
-3. Replace the PlatformIO firmware example under `software/firmware/`.
-4. Adjust dashboard labels and metric choices while preserving BardBox status/null behavior.
-5. Add project-specific docs under `docs/`.
+1. Edit the root `bardbox.toml` project and service metadata.
+2. Edit `software/app/config/app_config.example.json`.
+3. Replace or add drivers under `software/app/drivers/`.
+4. Replace the PlatformIO firmware example under `software/firmware/`.
+5. Adjust dashboard labels and metric choices while preserving BardBox status/null behavior.
+6. Add project-specific docs under `docs/`.
 
 New node UIDs must use `bb-<site>-<type>-<instance>`, for example
 `bb-prj-air-001`. Legacy `bb-0001` style IDs remain supported for existing
@@ -79,6 +121,9 @@ libraries are acceptable through PlatformIO.
 
 ```text
 project/
+├── bardbox.toml
+├── .devcontainer/
+├── .github/workflows/
 ├── software/
 │   ├── app/
 │   └── firmware/
@@ -90,6 +135,8 @@ project/
 ├── docs/
 ├── scripts/
 ├── tests/
+├── requirements.txt
+├── requirements-dev.txt
 └── README.md
 ```
 
