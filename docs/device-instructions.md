@@ -73,7 +73,11 @@ For a network-uploading node:
   `buffer_count` and `buffer_max_records`;
 - remove a buffered record only after successful acknowledgment; HTTP/HTTPS
   acknowledgment means any `2xx` response;
-- retry oldest-first while continuing to sample and append new readings;
+- keep acquisition, completed-record persistence, and upload separate: an upload/retry/catch-up must not block sensor sampling or persistence;
+- give Wi-Fi association, DNS, TLS, request, and acknowledgement operations explicit finite deadlines;
+- retry oldest-first with bounded backoff while continuing to sample and append new readings;
+- use a documented, bounded recovery ladder (reconnect, local network-client/interface reinitialization, then a software watchdog/restart only when the deployed platform supports and has been tested for it);
+- retain unacknowledged records through recovery and never use `BUFFER_CLEAR` as automated recovery;
 - expose connectivity, recent communication/storage errors, and buffer state
   through `INFO`;
 - report firmware and protocol versions independently;
