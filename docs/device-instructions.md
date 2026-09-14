@@ -84,3 +84,7 @@ For a network-uploading node:
 - keep automatic upload and catch-up quiet in production, reserving verbose
   output for an explicit operator diagnostic or development build;
 - do not add `TRACE` or `CATCHUP_TRACE` as standard commands.
+
+## Optional previews during catch-up
+
+The [live preview implementation checklist](live-preview-checklist.md) covers the optional canonical capability. Preview receipt never permits dequeue; the 2xx acknowledgment rule above applies to archival uploads. No preview runtime is enabled by this documentation change.

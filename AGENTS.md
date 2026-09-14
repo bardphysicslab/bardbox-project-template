@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Agent Instructions
 
 ## BardBox standards first
@@ -29,7 +28,7 @@ Apply the same outcomes to other transports, but do not copy HTTP-specific imple
 ## Compatibility
 
 Add health and diagnostic fields without breaking existing payloads, commands, dashboards, or stored records. Preserve protocol-version compatibility; firmware and protocol versions are separate. Test fault paths deterministically and update the firmware version for any deployed firmware behavior change.
-=======
+
 # BardBox contributor / agent rules
 
 ## Firmware sensor reliability
@@ -48,4 +47,7 @@ When adding or changing BardBox firmware:
 10. A project may make validation stricter than the template, but it may not weaken the shared compatibility and safety requirements without explicit maintainer approval.
 
 Canonical platform work is tracked in `bardphysicslab/bardbox` issue #13.
->>>>>>> 8496c59 (Add agent rules for sensor validation and recovery)
+
+## Optional live preview capability
+
+Before implementing previews, read canonical `bardbox/docs/web-node-live-preview.md` and local `docs/live-preview-checklist.md`. Keep preview receipt distinct from durable archival acknowledgment; preserve legacy FIFO behavior. This template documents the capability but does not yet implement or advertise it.
