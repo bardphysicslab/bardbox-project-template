@@ -23,6 +23,16 @@ PlatformIO espressif32 7.0.1. It is a build fixture, not deployment firmware.
 
 ## Installer responsibilities
 
+`BardBoxOTAAssignment.h` parses the reference server's response into a bounded
+assignment. It rejects duplicate/unknown/missing fields, non-integer or overflowing
+numbers, JSON escapes, non-ASCII strings, bodies larger than 4,096 bytes, and paths
+other than the assigned release's relative artifact path. It accepts JSON whitespace
+and arbitrary field order. Generation is limited to positive 32-bit values. The
+server emits unescaped ASCII for these fields; general-purpose JSON is not needed.
+Parser success is not signature verification: pass its manifest and signature to
+the verifier with provisioned trust before any install action. Resolve the relative
+artifact path against the configured origin and disable redirects.
+
 Persistent-state building blocks are `BardBoxOTAState.h`, `BardBoxOTAStateRecord.h`
 and `BardBoxOTAStateStoreESP32.h`. The state machine calls a persistence callback
 before permitting download or pending-boot actions. The bounded versioned record

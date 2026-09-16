@@ -26,6 +26,7 @@ inline bool otaToken(const std::string &s) {
 // separately reject missing/extra fields, duplicate keys and non-integer sizes.
 inline bool canonicalOTA(const OTAManifest &m, std::string &bytes) {
     bytes.clear();
+    if (m.releaseId=="." || m.releaseId=="..") return false;
     if (m.format!="bardbox-ota-v1" || !m.size || m.size>2U*1024U*1024U || m.sha256.size()!=64)
         return false;
     for (char c:m.sha256) if (!((c>='a' && c<='f') || (c>='0' && c<='9'))) return false;

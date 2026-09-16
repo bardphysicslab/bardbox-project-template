@@ -38,6 +38,8 @@ def canonical_manifest(manifest):
         raise ValueError('Invalid manifest fields')
     if manifest['format'] != 'bardbox-ota-v1':
         raise ValueError('Unsupported manifest format')
+    if manifest['release_id'] in ('.', '..'):
+        raise ValueError('Release ID cannot be a URL dot segment')
     if type(manifest['size']) is not int or not 0 < manifest['size'] <= MAX_IMAGE:
         raise ValueError('Invalid image size')
     if not isinstance(manifest['sha256'], str) or not DIGEST.fullmatch(manifest['sha256']):

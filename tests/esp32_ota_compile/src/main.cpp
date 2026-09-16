@@ -3,6 +3,8 @@
 #include <Preferences.h> // Expose the built-in dependency to PlatformIO's scanner.
 #include "BardBoxOTAVerifyESP32.h"
 #include "BardBoxOTAStateStoreESP32.h"
+#include "BardBoxOTAAssignment.h"
+auto volatile assignmentParser = &bardbox::OTAAssignmentParser::parse;
 // Keep the NVS adapter linked without performing any NVS operations in setup.
 bool compileStateStore(bardbox::OTAStateStoreESP32 &store, bardbox::OTAState &state) {
     return store.begin() && store.load(state) && store.save(state);
