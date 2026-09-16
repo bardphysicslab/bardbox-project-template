@@ -8,8 +8,9 @@ public:
     static bool encode(const OTAState &state, std::string &out) {
         out.clear();
         if(!OTAStateMachine::valid(state)) return false;
-        out="OS1"; out.push_back(static_cast<char>(state.phase));
+        out="OS2"; out.push_back(static_cast<char>(state.phase));
         put32(out,state.generation); put32(out,state.sequence);
+        put32(out,state.candidateBytes); put32(out,state.previousBytes);
         for(const auto *field:{&state.releaseId,&state.candidateHash,&state.previousHash,
                                &state.version,&state.failure}) {
             out.push_back(static_cast<char>(field->size())); out+=*field;
@@ -18,12 +19,13 @@ public:
         return true;
     }
     static bool decode(const std::string &bytes, OTAState &state) {
-        if(bytes.size()<21 || bytes.size()>MaxBytes || bytes.compare(0,3,"OS1")!=0 ||
+        if(bytes.size()<29 || bytes.size()>MaxBytes || bytes.compare(0,3,"OS2")!=0 ||
            get32(bytes,bytes.size()-4)!=crc(bytes.substr(0,bytes.size()-4))) return false;
         OTAState candidate;
         candidate.phase=static_cast<OTAPhase>(static_cast<unsigned char>(bytes[3]));
         candidate.generation=get32(bytes,4); candidate.sequence=get32(bytes,8);
-        size_t pos=12, end=bytes.size()-4;
+        candidate.candidateBytes=get32(bytes,12); candidate.previousBytes=get32(bytes,16);
+        size_t pos=20, end=bytes.size()-4;
         for(auto *field:{&candidate.releaseId,&candidate.candidateHash,&candidate.previousHash,
                          &candidate.version,&candidate.failure}) {
             if(pos>=end) return false;

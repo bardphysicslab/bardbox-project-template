@@ -23,6 +23,28 @@ PlatformIO espressif32 7.0.1. It is a build fixture, not deployment firmware.
 
 ## Installer responsibilities
 
+### Exact artifact identity after restart
+
+The signed SHA-256 covers every byte of the `.bin` file, including its appended
+ESP image digest. The bundled SDK documents that `esp_partition_get_sha256()`
+returns that appended digest for hashed ESP applications, rather than hashing the
+entire downloaded file. Both generated CESH sensor images confirm these differ.
+
+`BardBoxOTAImageDigestESP32.h` reads exactly the supplied artifact length from an
+application partition and calculates the full SHA-256 in steps of at most 1,024
+bytes. Schedule/yield between steps to preserve acquisition. Read/hash failure
+must stop identity-dependent OTA operations. This helper compiled and linked;
+physical flash-read validation remains pending.
+
+The persistent state format is now `OS2`, recording `candidateBytes` and
+`previousBytes` alongside the hashes. `accept()` and `booted()` require the byte
+length as well as the full artifact hash. Initial commissioning must establish
+the known-good artifact's exact length/hash. After reboot, hash the running
+partition over the recorded candidate extent and, if needed, the previous extent;
+accept an identity only if both length and hash match. Do not guess the length
+from partition capacity or silently substitute an ESP app-description digest.
+Unknown earlier state formats fail closed; they are not reset automatically.
+
 `BardBoxOTAAssignment.h` parses the reference server's response into a bounded
 assignment. It rejects duplicate/unknown/missing fields, non-integer or overflowing
 numbers, JSON escapes, non-ASCII strings, bodies larger than 4,096 bytes, and paths
