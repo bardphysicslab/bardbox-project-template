@@ -1,0 +1,13 @@
+{
+  "uid": "bb-ces-air-001",
+  "name": "CESH Air 001",
+  "wifi_ssid": "Example WiFi",
+  "wifi_password": "replace-me",
+  "telemetry_url": "https://lab.example/api/v1/readings",
+  "telemetry_token": "",
+  "ota_origin": "https://lab.example",
+  "ota_device_token": "replace_with_unique_urlsafe_device_token_32_or_more_characters",
+  "ca_file": "lab-ca.pem",
+  "signing_key_id": "lab-1",
+  "signing_public_key_file": "lab-ota-public.pem"
+}

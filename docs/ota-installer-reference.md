@@ -126,3 +126,8 @@ compile/link includes the actual HTTPS POST method. Live TLS/HTTP delivery and
 project scheduling remain integration/physical tests, not established by these
 checks. CESH's service receives the shared counter-range fix; its firmware has not
 yet adopted these status helpers. RKC does not currently consume this capability.
+
+
+Persistent configuration and USB staging are now available in the separate
+[device provisioning reference](device-provisioning.md). CESH consumes this portion;
+its OTA worker, lifecycle initialization and boot validation remain outstanding.

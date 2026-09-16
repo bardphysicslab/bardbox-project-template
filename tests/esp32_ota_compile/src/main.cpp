@@ -4,6 +4,11 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include "BardBoxOTAHTTPSESP32.h"
+#include "BardBoxDeviceConfigStoreESP32.h"
+bool compileDeviceConfig(bardbox::DeviceConfigStoreESP32 &store,bardbox::DeviceConfig &config) {
+    return store.begin() && store.provision(config) && store.load(config);
+}
+auto volatile deviceConfigCheck=&compileDeviceConfig;
 auto volatile reportCheck = &bardbox::OTAHTTPSESP32::report;
 auto volatile pollCheck = &bardbox::OTAHTTPSESP32::poll;
 #include "BardBoxOTAVerifyESP32.h"
