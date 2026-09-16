@@ -77,7 +77,7 @@ network retry; coalesce progress to bound NVS wear. `booted()` reserves a fresh
 sequence before reporting from a new boot. Only call `confirm()` after local checks
 and the platform's successful mark-app-valid operation; neither the state helper
 nor the NVS adapter performs bootloader operations. These are shared components,
-not yet connected to a deployed CESH installer. Host tests cover uncertain commits,
+connected to optional CESH bench builds, not yet deployed. Host tests cover uncertain commits,
 reboots and corrupt/truncated records; physical NVS power-loss tests remain pending.
 
 1. Parse bounded JSON strictly: exact fields, no duplicates, and integer size

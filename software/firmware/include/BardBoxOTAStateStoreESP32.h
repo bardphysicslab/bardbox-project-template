@@ -8,6 +8,7 @@ namespace bardbox {
 class OTAStateStoreESP32 {
 public:
     bool begin() { return preferences_.begin("bb-ota",false); }
+    bool exists() { return preferences_.isKey("state"); }
     bool load(OTAState &state) {
         std::string bytes;
         return read(bytes) && OTAStateRecord::decode(bytes,state);

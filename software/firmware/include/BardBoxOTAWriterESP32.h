@@ -49,7 +49,7 @@ public:
         return true;
     }
     template<class Persist>
-    bool finish(OTAStateMachine &state,Persist persist) {
+    bool finish(OTAStateMachine &state,Persist persist,bool selectBoot=true) {
         if(!active_) return false;
         const auto &saved=state.state();
         if(!state.ready() || saved.phase!=OTAPhase::Downloading || saved.generation!=generation_ ||
@@ -66,6 +66,8 @@ public:
         active_=false;
         if(ended!=ESP_OK) { state.fail("platform_image_invalid",persist); return false; }
         if(!state.downloadedAndVerified(persist)) return false;
+        // A project can defer selection until its acquisition boundary is safe.
+        if(!selectBoot) return true;
         if(esp_ota_set_boot_partition(partition_)!=ESP_OK) {
             state.fail("boot_selection_failed",persist); return false;
         }

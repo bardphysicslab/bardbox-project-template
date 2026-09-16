@@ -7,8 +7,8 @@ These checks do not replace visual browser review.
 For device-side validation helpers and remaining installer responsibilities, see
 [embedded verification](ota-device-verification.md).
 
-Development status: server implementation and tests; device installer and physical
-commissioning are still required. Do not register existing single-slot nodes as
+Development status: server and shared installer implemented; CESH integration is
+a bench candidate. Physical commissioning and acceptance remain required. Do not register existing single-slot nodes as
 OTA-ready. The authoritative contract is bardbox/docs/ota-update-standard.md.
 
 ## Enable the management service

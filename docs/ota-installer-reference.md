@@ -1,7 +1,7 @@
 # ESP32 HTTPS installer components
 
 Status: optional shared components, host-tested and ESP32 compile/link checked.
-Not wired into CESH's running firmware and not physically validated. Do not flash
+Connected to CESH's optional bench-candidate firmware, not physically validated. Do not flash
 the compile fixture or register an unprepared device as OTA-ready.
 
 ## Implementation and data flow
@@ -16,8 +16,9 @@ flowchart LR
   State --> Write[Write inactive slot in bounded chunks]
   Write --> Check[Full artifact SHA-256 and ESP image validation]
   Check --> Pending[Persist pending boot]
-  Pending --> Select[Select boot partition]
-  Select --> Worker[Project flush and reboot scheduling]
+  Pending --> Boundary[Project persists a completed window and pauses acquisition]
+  Boundary --> Select[Select boot partition]
+  Select --> Worker[Controlled restart]
 ```
 
 - `BardBoxOTAHTTPSConfig.h` validates a DNS/IPv4 HTTPS origin with optional port,
@@ -37,8 +38,8 @@ flowchart LR
 - `BardBoxOTAWriterESP32.h` rechecks signature/compatibility, rejects the running
   partition and unexpected slot capacity, and persists the assignment before
   erasing/writing the inactive slot. It checks exact byte count and full-file hash,
-  requires `esp_ota_end` image validation, persists pending state, then selects the
-  boot partition. It never restarts. It does not write the measurement filesystem.
+  requires `esp_ota_end` image validation, persists pending state, and either selects the
+  boot partition or defers selection to the project boundary. It never restarts. It does not write the measurement filesystem.
 
 Transport errors before assignment acceptance leave the assignment pending for a
 later bounded poll. Errors after acceptance mark failure; the same generation is
@@ -47,9 +48,9 @@ writer `append()` failure, the calling worker must abort/report failure; the HTT
 wrapper already does this. A failed or uncertain state commit disables further
 update actions until verified reload.
 
-## Project worker still required
+## Project worker responsibilities
 
-CESH must supply a single OTA worker independent of acquisition, persistent device
+Each consuming project must supply a single OTA worker independent of acquisition, persistent device
 identity/network/trust configuration, verified running artifact identity, bounded
 poll/backoff scheduling and durable status emission. Call polling only when network
 and time prerequisites are ready. Do not put these blocking network calls in the
@@ -86,7 +87,7 @@ heap pressure, network loss and boot rollback on a physical Feather. The CESH
 ## Scope, propagation and decisions
 
 This is an optional Bardbox capability, with shared code owned by the template and
-the contract owned by Bardbox. CESH is the first planned consuming firmware. RKC
+the contract owned by Bardbox. CESH is the first consuming firmware, in optional bench builds. RKC
 and other transport-specific nodes should not inherit an unused OTA worker.
 Consumption must be explicit and versioned when the CESH worker is integrated.
 Existing operator-page behavior and sensor data processing are unchanged by these
@@ -124,10 +125,29 @@ persistence, and submit its JSON to the service. They cover duplicate acceptance
 and counters across the signed 32-bit boundary up to unsigned exhaustion. ESP32
 compile/link includes the actual HTTPS POST method. Live TLS/HTTP delivery and
 project scheduling remain integration/physical tests, not established by these
-checks. CESH's service receives the shared counter-range fix; its firmware has not
-yet adopted these status helpers. RKC does not currently consume this capability.
+checks. CESH's service receives the shared counter-range fix and its optional worker
+uses these status helpers. RKC does not currently consume this capability.
 
 
 Persistent configuration and USB staging are now available in the separate
 [device provisioning reference](device-provisioning.md). CESH consumes this portion;
-its OTA worker, lifecycle initialization and boot validation remain outstanding.
+its optional worker now integrates lifecycle initialization and boot validation, with physical acceptance pending.
+
+
+## Deferred selection and local boot policy
+
+`finish(..., selectBoot=false)` and the corresponding HTTPS install option return
+a verified image with durable pending state, without selecting a boot slot. HTTPS
+returns `VerifiedAwaitingSelection` in this mode; the project must perform explicit
+selection only at its safe acquisition boundary. The existing default selection
+mode remains available to callers that coordinate a boundary earlier. CESH uses
+deferred selection so boundary failure leaves the current selection intact. Native
+writer tests assert no selection call in the deferred path.
+
+`BardBoxOTABootValidation.h` is a local-only policy: configuration and storage must
+work, a new reporting window must persist, acquisition must remain recent, and the
+bounded deadline must not expire. It does not assess network availability or require
+all sensors healthy. CESH now consumes the shared installer/status/state modules
+in its optional commissioned OTA builds; its project worker owns scheduling, physical
+layout checks, SDK boot transitions and the acquisition boundary. Physical integration
+and fault validation remain outstanding; host/build checks do not establish them.

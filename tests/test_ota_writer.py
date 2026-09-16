@@ -69,7 +69,7 @@ int main(){
  OTATarget t;t.component=m.component;t.target=m.target;t.layout=m.layout;
  t.configSchema=m.configSchema;t.queueSchema=m.queueSchema;t.slotBytes=2097152;
  uint8_t bytes[5]={};
- for(int scenario=0;scenario<10;++scenario){
+ for(int scenario=0;scenario<11;++scenario){
   fake::reset();OTAStateMachine state;assert(state.restore(OTAState()));
   bool failPending=scenario==6;
   auto save=[&](const OTAState&s){fake::events.push_back("save"+std::to_string(static_cast<int>(s.phase)));return !(failPending&&s.phase==OTAPhase::PendingBoot);};
@@ -88,10 +88,14 @@ int main(){
   if(scenario==5)fake::hash=false;
   if(scenario==7)fake::end=false;
   if(scenario==9)fake::select=false;
-  bool finished=writer.finish(state,save);
+  bool finished=writer.finish(state,save,scenario!=10);
   if(scenario==0){
    assert(finished&&writer.readyForReboot());
    assert((fake::events==std::vector<std::string>{"save1","begin","write","end","save2","select"}));
+  }else if(scenario==10){
+   assert(finished&&!writer.readyForReboot());
+   assert(state.state().phase==OTAPhase::PendingBoot);
+   assert((fake::events==std::vector<std::string>{"save1","begin","write","end","save2"}));
   }else if(scenario==9){
    assert(!finished&&!writer.readyForReboot());
    assert(state.state().phase==OTAPhase::Failed);

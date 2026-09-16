@@ -13,7 +13,7 @@ namespace bardbox {
 class OTAHTTPSESP32 {
 public:
     enum class Poll { Available, None, Failed };
-    enum class Install { ReadyForReboot, AlreadyCurrent, Failed };
+    enum class Install { ReadyForReboot, VerifiedAwaitingSelection, AlreadyCurrent, Failed };
     enum class Report { Accepted, RetryLater, Rejected };
     static Report report(const OTAHTTPSConfig &config,const OTAStatusEvent &event) {
         if(event.body().empty()) return Report::Rejected;
@@ -48,7 +48,7 @@ public:
     template<class Persist>
     static Install install(const OTAHTTPSConfig &config,const OTAAssignment &assignment,
             const OTATarget &target,const std::string &keyId,const std::string &publicPem,
-            OTAStateMachine &state,const std::string &runningHash,uint32_t runningBytes,Persist persist) {
+            OTAStateMachine &state,const std::string &runningHash,uint32_t runningBytes,Persist persist,bool selectBoot=true) {
         if(assignment.artifactPath!="/ota/v1/device/artifact/"+assignment.manifest.releaseId ||
            verifyOTAESP32(assignment.manifest,target,assignment.signature,keyId,publicPem)!=OTAVerification::Valid)
             return Install::Failed;
@@ -67,7 +67,8 @@ public:
             [&](const uint8_t *bytes,size_t count){return writer.append(bytes,count);});
         http.end();
         if(!read){writer.abort();state.fail("download_transport_or_write_failed",persist);return Install::Failed;}
-        return writer.finish(state,persist) ? Install::ReadyForReboot : Install::Failed;
+        if(!writer.finish(state,persist,selectBoot)) return Install::Failed;
+        return selectBoot ? Install::ReadyForReboot : Install::VerifiedAwaitingSelection;
     }
 private:
     static bool open(const OTAHTTPSConfig &config,const std::string &path,WiFiClientSecure &client,HTTPClient &http) {
