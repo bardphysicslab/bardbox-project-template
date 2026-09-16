@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Firmware updates · Bardbox</title><link rel="stylesheet" href="/static/bardbox.css"><link rel="stylesheet" href="/static/firmware.css"><script src="/static/firmware.js" defer></script></head>
-<body><header class="site-header"><a href="/">Bardbox</a><nav><a href="/">Monitor home</a></nav></header><main class="shell">
+<body><main class="shell"><header class="site-header"><div class="brand"><img src="/static/Bard-Web-Logos/bard-logo-red.png" alt="Bard College"><span>BardBox</span></div><nav class="nav-links" aria-label="Primary"><a href="/">Monitor home</a></nav></header>
 <h1>Firmware updates</h1><p>Assign a signed release to one device first. Check its outcome before updating more devices.</p>
 <p id="notice" role="status" aria-live="polite">Loading devices…</p>
 <section class="panel"><h2>Add a release</h2><form id="upload"><label>Signed release manifest <input id="manifest" type="file" accept=".json" required></label><label>Firmware file <input id="image" type="file" accept=".bin" required></label><button type="submit">Upload and verify</button></form></section>
-<section class="panel"><h2>Devices</h2><button id="refresh" type="button">Refresh status</button><div class="table-wrap"><table><thead><tr><th>Device</th><th>Current version</th><th>Assigned release</th><th>Update status</th><th>Last report (UTC)</th><th>Action</th></tr></thead><tbody id="devices"></tbody></table></div></section>
+<section class="panel"><h2>Devices</h2><button id="refresh" type="button">Refresh status</button><div class="table-wrap"><table><thead><tr><th>Device</th><th>Last reported version</th><th>Assigned release</th><th>Update status</th><th>Last contact (UTC)</th><th>Action</th></tr></thead><tbody id="devices"></tbody></table></div></section>
 <dialog id="review"><form method="dialog"><h2>Assign firmware update?</h2><p id="review-text"></p><p>The device will download and restart when it connects. Measurements will briefly pause during restart.</p><button value="cancel">Cancel</button><button id="confirm" value="confirm">Assign update</button></form></dialog>
 <section class="panel"><h2>Recent activity</h2><ul id="audit"></ul></section>
 </main></body></html>

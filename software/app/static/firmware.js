@@ -7,9 +7,11 @@ async function api(path, payload) {
   const data=await r.json();if(!r.ok){const error=new Error(typeof data.detail==='string'?data.detail:'Request failed');error.status=r.status;throw error;}return data;
 }
 function cell(row,text){const c=document.createElement('td');c.textContent=text;row.append(c);return c;}
+let refreshGeneration=0;
 async function refresh(){
+ const generation=++refreshGeneration;
  try {
-  const data=await api('overview');el('devices').replaceChildren();
+  const data=await api('overview');if(generation!==refreshGeneration)return;el('devices').replaceChildren();
   for(const d of data.devices){
    const row=document.createElement('tr');cell(row,d.uid);cell(row,d.status?.running_version||'—');
    cell(row,d.assignment?.release_id||'—');
@@ -21,7 +23,8 @@ async function refresh(){
    for(const r of data.releases.filter(r=>['component','target','layout','config_schema','queue_schema'].every(k=>r[k]===d[k])&&r.size<=d.slot_bytes)){
     const o=document.createElement('option');o.value=r.release_id;o.textContent=r.release_id+' · '+r.version;select.append(o);
    }
-   const button=document.createElement('button');button.textContent='Review update';button.disabled=select.options.length===1;
+   const button=document.createElement('button');button.textContent='Review update';button.disabled=true;
+   select.onchange=()=>{button.disabled=!select.value;};
    button.onclick=()=>{if(!select.value)return;const rid=select.value;el('review-text').textContent=`Assign ${rid} to ${d.uid}?`;
     el('review').onclose=async()=>{if(el('review').returnValue!=='confirm')return;button.disabled=true;
      const retryKey='bardbox-ota-'+d.uid+'-'+rid;
@@ -38,7 +41,7 @@ async function refresh(){
   if(!data.devices.length){const row=document.createElement('tr');const c=cell(row,'No OTA devices registered yet.');c.colSpan=6;el('devices').append(row);}
   el('audit').replaceChildren();for(const a of data.audit){const li=document.createElement('li');li.textContent=`${new Date(a.created*1000).toISOString()} · ${a.actor} · ${a.action} · ${a.details}`;el('audit').append(li);}
   notice(data.devices.length+' registered devices.');
- }catch(e){notice(e.message,true);}
+ }catch(e){if(generation===refreshGeneration)notice(e.message,true);}
 }
 el('refresh').onclick=refresh;
 el('upload').onsubmit=async e=>{

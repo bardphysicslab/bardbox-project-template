@@ -1,5 +1,9 @@
 # OTA reference implementation
 
+Operator-page behavior tests: `node --test tests/firmware_ui.test.cjs` verifies
+refresh ordering and release-selection controls using a small DOM test double.
+These checks do not replace visual browser review.
+
 For device-side validation helpers and remaining installer responsibilities, see
 [embedded verification](ota-device-verification.md).
 
