@@ -15,7 +15,7 @@ def setup(tmp_path):
     key = ec.generate_private_key(ec.SECP256R1())
     public = key.public_key().public_bytes(serialization.Encoding.PEM,
                                           serialization.PublicFormat.SubjectPublicKeyInfo).decode()
-    device = dict(target='cesh-bme280', layout='dual-2m', config_schema='1',
+    device = dict(component='app', target='cesh-bme280', layout='dual-2m', config_schema='1',
                   queue_schema='1', slot_bytes=2097152)
     config = dict(enabled=True, public_origin='https://lab.example',
                   admins={'operator': token_hash('admin-secret')}, public_keys={'lab': public},
@@ -157,6 +157,9 @@ def test_compatibility_and_immutable_release_id(setup):
     m = package['envelope']['manifest']
     device = dict(m, slot_bytes=2097152)
     assert compatible(device, m)
+    device['component'] = 'other-component'
+    assert not compatible(device, m)
+    device['component'] = m['component']
     device['target'] = 'cesh-bme680'
     assert not compatible(device, m)
     for value in ([], None, {'envelope':{},'image_base64':'???'}):

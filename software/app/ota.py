@@ -74,7 +74,7 @@ def token_hash(token):
 
 
 def compatible(device, manifest):
-    return all(device.get(k) == manifest[k] for k in ('target', 'layout', 'config_schema', 'queue_schema')) and manifest['size'] <= device['slot_bytes']
+    return all(device.get(k) == manifest[k] for k in ('component', 'target', 'layout', 'config_schema', 'queue_schema')) and manifest['size'] <= device['slot_bytes']
 
 
 class OTAStore:
@@ -232,7 +232,7 @@ def create_ota_router(config, root, page_path=None):
     for uid, device in devices.items():
         if not TOKEN.fullmatch(uid) or type(device.get('slot_bytes')) is not int or not 0 < device['slot_bytes'] <= MAX_IMAGE:
             raise ValueError('Invalid OTA device registration')
-        if any(not isinstance(device.get(k), str) or not TOKEN.fullmatch(device[k]) for k in ('target','layout','config_schema','queue_schema')):
+        if any(not isinstance(device.get(k), str) or not TOKEN.fullmatch(device[k]) for k in ('component','target','layout','config_schema','queue_schema')):
             raise ValueError('Invalid device compatibility registration')
     store = OTAStore(root)
 
@@ -301,7 +301,7 @@ def create_ota_router(config, root, page_path=None):
                 status = json.loads(latest['status']) if latest and latest['status'] else None
                 seen = db.execute('SELECT received FROM contacts WHERE uid=?', (uid,)).fetchone()
                 seen = seen[0] if seen else None
-                rows.append({'uid':uid, **{k:registration[k] for k in ('target','layout','config_schema','queue_schema','slot_bytes')},
+                rows.append({'uid':uid, **{k:registration[k] for k in ('component','target','layout','config_schema','queue_schema','slot_bytes')},
                              'assignment':latest, 'status':status, 'last_seen':seen,
                              'stale':seen is None or time.time()-seen > config.get('stale_after_s', 900)})
             audit = [dict(r) for r in db.execute('SELECT * FROM audit ORDER BY id DESC LIMIT 100')]

@@ -1,5 +1,8 @@
 # OTA reference implementation
 
+For device-side validation helpers and remaining installer responsibilities, see
+[embedded verification](ota-device-verification.md).
+
 Development status: server implementation and tests; device installer and physical
 commissioning are still required. Do not register existing single-slot nodes as
 OTA-ready. The authoritative contract is bardbox/docs/ota-update-standard.md.
@@ -27,7 +30,8 @@ Required structure (replace all placeholder values locally):
       "layout": "dual-2m-v1",
       "config_schema": "1",
       "queue_schema": "1",
-      "slot_bytes": 2097152
+      "slot_bytes": 2097152,
+      "component": "app"
     }
   }
 }

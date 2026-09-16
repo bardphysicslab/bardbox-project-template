@@ -18,7 +18,7 @@ async function refresh(){
    cell(row,d.last_seen?new Date(d.last_seen*1000).toISOString():'—');
    const action=cell(row,'');const select=document.createElement('select');select.setAttribute('aria-label','Release for '+d.uid);
    const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Select compatible release';select.append(placeholder);
-   for(const r of data.releases.filter(r=>['target','layout','config_schema','queue_schema'].every(k=>r[k]===d[k])&&r.size<=d.slot_bytes)){
+   for(const r of data.releases.filter(r=>['component','target','layout','config_schema','queue_schema'].every(k=>r[k]===d[k])&&r.size<=d.slot_bytes)){
     const o=document.createElement('option');o.value=r.release_id;o.textContent=r.release_id+' · '+r.version;select.append(o);
    }
    const button=document.createElement('button');button.textContent='Review update';button.disabled=select.options.length===1;
