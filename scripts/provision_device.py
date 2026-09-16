@@ -103,6 +103,7 @@ def main():
     parser.add_argument('--running-firmware', type=Path, required=True)
     parser.add_argument('--port')
     parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--assert-dtr', action='store_true', help='Assert USB CDC host-ready DTR without RTS; use only after verifying board reset behavior')
     args = parser.parse_args()
     try:
         config = json.loads(args.config.read_text())
@@ -114,7 +115,7 @@ def main():
             parser.error('--port is required unless --dry-run is used')
         import serial
         connection = serial.Serial(port=None, baudrate=115200, timeout=0.25, write_timeout=5)
-        connection.dtr = False
+        connection.dtr = args.assert_dtr
         connection.rts = False
         connection.port = args.port
         connection.open()

@@ -90,3 +90,26 @@ def test_usb_transfer_is_bounded_and_does_not_echo_errors():
     with pytest.raises(RuntimeError) as error:
         provision.commission(FakeSerial(reject=True), record)
     assert 'private-secret' not in str(error.value)
+
+@pytest.mark.parametrize('assert_dtr', [False, True])
+def test_cli_host_ready_is_explicit_and_rts_stays_off(tmp_path, monkeypatch, assert_dtr):
+    import sys
+    from types import SimpleNamespace
+    config=tmp_path/'config.json';config.write_text('{}')
+    firmware=tmp_path/'firmware.bin';firmware.write_bytes(b'image')
+    observed=[]
+    class Port:
+        def __init__(self, **kwargs):
+            assert kwargs['port'] is None
+        def open(self):
+            observed.append((self.dtr,self.rts,self.port))
+        def __enter__(self): return self
+        def __exit__(self,*args): pass
+    monkeypatch.setitem(sys.modules,'serial',SimpleNamespace(Serial=Port))
+    monkeypatch.setattr(provision,'encode_config',lambda *args:b'record')
+    monkeypatch.setattr(provision,'commission',lambda *args:None)
+    args=['provision_device.py','--config',str(config),'--running-firmware',str(firmware),'--port','test-port']
+    if assert_dtr: args.append('--assert-dtr')
+    monkeypatch.setattr(sys,'argv',args)
+    provision.main()
+    assert observed==[(assert_dtr,False,'test-port')]

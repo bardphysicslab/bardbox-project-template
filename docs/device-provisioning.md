@@ -95,3 +95,10 @@ accidental identity changes and queue relabeling. A general configuration editor
 would require atomic activation/rollback, credential rotation and maintenance
 policy. Those capabilities are intentionally separate. Do not claim provisioning
 alone completes an OTA installer or authorizes a deployment.
+
+## Native USB CDC host-ready signal
+
+Some ESP32-S3 native USB CDC builds reply only while DTR indicates a connected
+host. On bench node004 this was verified with DTR asserted and RTS deasserted.
+Use `--assert-dtr` only after checking the board reset behavior; default DTR/RTS
+both remain deasserted. This option does not request a reboot or flash write.
