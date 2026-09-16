@@ -23,6 +23,28 @@ PlatformIO espressif32 7.0.1. It is a build fixture, not deployment firmware.
 
 ## Installer responsibilities
 
+Persistent-state building blocks are `BardBoxOTAState.h`, `BardBoxOTAStateRecord.h`
+and `BardBoxOTAStateStoreESP32.h`. The state machine calls a persistence callback
+before permitting download or pending-boot actions. The bounded versioned record
+has a CRC; the ESP32 adapter stores one complete blob in NVS namespace `bb-ota`
+and verifies readback. Missing/corrupt state fails closed. `provisionIdle()` is an
+explicit commissioning operation, never automatic startup recovery.
+
+Restore verified state before accepting assignments. An interrupted download is
+recorded as failed after restart; the same generation cannot reinstall. A boot of
+the previous image while pending/validating records rollback. Equal-image new
+assignments can be confirmed without writing an image or rebooting. Unknown
+persistence outcomes disable update actions until reload. Acquisition remains an
+independent responsibility and must continue when OTA is disabled.
+
+Use `reserveStatus()` before a new progress event and reuse the exact event on
+network retry; coalesce progress to bound NVS wear. `booted()` reserves a fresh
+sequence before reporting from a new boot. Only call `confirm()` after local checks
+and the platform's successful mark-app-valid operation; neither the state helper
+nor the NVS adapter performs bootloader operations. These are shared components,
+not yet connected to a deployed CESH installer. Host tests cover uncertain commits,
+reboots and corrupt/truncated records; physical NVS power-loss tests remain pending.
+
 1. Parse bounded JSON strictly: exact fields, no duplicates, and integer size
    without coercion/truncation. The C++ struct cannot detect JSON parser mistakes.
 2. Populate `OTATarget` from trusted local configuration and actual slot capacity.
