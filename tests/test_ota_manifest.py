@@ -4,14 +4,16 @@ import shutil
 import subprocess
 
 from software.app.ota import canonical_manifest
+import pytest
 
 
-def test_update_state_commit_and_reboot_failures(tmp_path):
+@pytest.mark.parametrize('source', ['ota_state.cpp', 'ota_https_config.cpp', 'ota_stream.cpp'])
+def test_update_state_commit_and_reboot_failures(tmp_path, source):
     root = Path(__file__).resolve().parents[1]
     binary = tmp_path / 'ota-state'
     subprocess.run([shutil.which('c++'), '-std=c++11', '-Wall', '-Wextra', '-Werror',
                     '-fsanitize=address,undefined', '-I', str(root/'software/firmware/include'),
-                    str(root/'tests/ota_state.cpp'), '-o', str(binary)], check=True)
+                    str(root/'tests'/source), '-o', str(binary)], check=True)
     subprocess.run([str(binary)], check=True, timeout=30,
                    env={**os.environ, 'ASAN_OPTIONS': 'detect_leaks=0'})
 

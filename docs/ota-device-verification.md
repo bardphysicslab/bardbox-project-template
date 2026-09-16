@@ -1,5 +1,8 @@
 # Embedded OTA verification reference
 
+The [HTTPS installer components](ota-installer-reference.md) connect these helpers
+to verified delivery and inactive-slot writes; project worker integration remains.
+
 For the optional two-slot layout and device preparation requirements, see
 [partition commissioning](ota-partition-commissioning.md).
 
