@@ -1,5 +1,8 @@
 # Embedded OTA verification reference
 
+For the optional two-slot layout and device preparation requirements, see
+[partition commissioning](ota-partition-commissioning.md).
+
 Status: verification helpers, not a complete updater. Including these headers
 does not update a device. Delivery, JSON parsing, persistent assignment state,
 inactive-slot writing and boot validation still require platform integration.
