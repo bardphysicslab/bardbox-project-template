@@ -143,6 +143,8 @@ class OTAStore:
             if not compatible(device, json.loads(release['envelope'])['manifest']):
                 raise HTTPException(409, 'Release is incompatible with this device')
             generation = db.execute('SELECT COALESCE(MAX(generation),0)+1 FROM assignments WHERE uid=?', (uid,)).fetchone()[0]
+            if generation > 4294967295:
+                raise HTTPException(409, 'Assignment generation exhausted')
             db.execute('INSERT INTO assignments(uid,generation,release_id,request_id,actor,created) VALUES(?,?,?,?,?,?)', (uid, generation, rid, request_id, actor, time.time()))
             db.execute('INSERT INTO audit(actor,action,details,created) VALUES(?,?,?,?)', (actor, 'assign', json.dumps({'uid': uid, 'generation': generation, 'release_id': rid}), time.time()))
         return {'generation': generation, 'existing': False}
@@ -173,7 +175,7 @@ class OTAStore:
         if not isinstance(payload, dict) or set(payload) != required:
             raise HTTPException(422, 'Invalid status fields')
         for key in ('generation', 'sequence', 'bytes'):
-            if type(payload[key]) is not int or not 0 <= payload[key] <= 2147483647:
+            if type(payload[key]) is not int or not 0 <= payload[key] <= 4294967295:
                 raise HTTPException(422, 'Invalid status counter')
         for key in ('boot_id', 'running_version', 'failure'):
             if not isinstance(payload[key], str) or not TOKEN.fullmatch(payload[key]):

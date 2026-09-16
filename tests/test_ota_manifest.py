@@ -7,7 +7,7 @@ from software.app.ota import canonical_manifest
 import pytest
 
 
-@pytest.mark.parametrize('source', ['ota_state.cpp', 'ota_https_config.cpp', 'ota_stream.cpp'])
+@pytest.mark.parametrize('source', ['ota_state.cpp', 'ota_https_config.cpp', 'ota_stream.cpp', 'ota_status.cpp'])
 def test_update_state_commit_and_reboot_failures(tmp_path, source):
     root = Path(__file__).resolve().parents[1]
     binary = tmp_path / 'ota-state'

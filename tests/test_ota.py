@@ -170,3 +170,47 @@ def test_large_status_body_rejected(setup):
     make, _, _ = setup
     assert make().post('/ota/v1/device/status', headers={'Authorization':'Bearer device-a'},
                        content=b'x'*8193).status_code == 413
+
+
+def test_embedded_status_body_roundtrip_and_counter_bounds(setup, tmp_path):
+    import json
+    import shutil
+    import subprocess
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    binary = tmp_path / 'ota-status'
+    subprocess.run([shutil.which('c++'), '-std=c++11', '-Wall', '-Wextra', '-Werror',
+                    '-I', str(root / 'software/firmware/include'),
+                    str(root / 'tests/ota_status.cpp'), '-o', str(binary)], check=True)
+    payload = json.loads(subprocess.check_output([str(binary)], timeout=30))
+    make, headers, package = setup
+    client = make()
+    upload_assign(client, headers, package)
+    auth = {'Authorization': 'Bearer device-a'}
+    # Replace only the fixture image digest, keeping the emitted wire shape.
+    payload['running_sha256'] = package['envelope']['manifest']['sha256']
+    payload['bytes'] = len(base64.b64decode(package['image_base64']))
+    endpoint = '/ota/v1/device/status'
+    assert payload['sequence'] == 2147483648
+    assert client.post(endpoint, headers=auth, json=payload).status_code == 200
+    duplicate = client.post(endpoint, headers=auth, json=payload)
+    assert duplicate.json()['duplicate'] is True
+    payload['sequence'] = 4294967295
+    assert client.post(endpoint, headers=auth, json=payload).status_code == 200
+    payload['sequence'] += 1
+    assert client.post(endpoint, headers=auth, json=payload).status_code == 422
+
+
+def test_assignment_generation_exhaustion_is_fail_closed(setup, tmp_path):
+    import sqlite3
+    make, headers, package = setup
+    client = make()
+    upload_assign(client, headers, package)
+    db_path = next(tmp_path.glob('*.sqlite3'))
+    with sqlite3.connect(db_path) as db:
+        db.execute('UPDATE assignments SET generation=4294967295')
+    response = client.post('/ota/v1/admin/assignments', headers=headers,
+                           json=dict(uid='node-a', release_id='release-1', request_id='next'))
+    assert response.status_code == 409
+    with sqlite3.connect(db_path) as db:
+        assert db.execute('SELECT COUNT(*) FROM assignments').fetchone()[0] == 1

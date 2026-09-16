@@ -4,6 +4,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include "BardBoxOTAHTTPSESP32.h"
+auto volatile reportCheck = &bardbox::OTAHTTPSESP32::report;
 auto volatile pollCheck = &bardbox::OTAHTTPSESP32::poll;
 #include "BardBoxOTAVerifyESP32.h"
 #include "BardBoxOTAStateStoreESP32.h"

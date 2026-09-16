@@ -2,6 +2,7 @@
 #include "BardBoxOTAHTTPSConfig.h"
 #include "BardBoxOTAWriterESP32.h"
 #include "BardBoxOTAStream.h"
+#include "BardBoxOTAStatus.h"
 #include <Arduino.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
@@ -13,6 +14,21 @@ class OTAHTTPSESP32 {
 public:
     enum class Poll { Available, None, Failed };
     enum class Install { ReadyForReboot, AlreadyCurrent, Failed };
+    enum class Report { Accepted, RetryLater, Rejected };
+    static Report report(const OTAHTTPSConfig &config,const OTAStatusEvent &event) {
+        if(event.body().empty()) return Report::Rejected;
+        WiFiClientSecure client;
+        HTTPClient http;
+        if(!open(config,"/ota/v1/device/status",client,http)) return Report::RetryLater;
+        http.addHeader("Content-Type","application/json");
+        int code=http.POST(event.body().c_str());
+        http.end();
+        if(code==200) return Report::Accepted;
+        // 4xx indicates credentials, stale assignment or malformed/conflicting
+        // event. Refresh state/config; never hot-loop the same rejected report.
+        if(code>=400 && code<500 && code!=408 && code!=429) return Report::Rejected;
+        return Report::RetryLater;
+    }
     static Poll poll(const OTAHTTPSConfig &config,OTAAssignment &assignment) {
         WiFiClientSecure client;
         HTTPClient http;

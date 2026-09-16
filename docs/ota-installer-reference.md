@@ -98,3 +98,31 @@ The rejected alternatives are unsigned images, redirecting bearer credentials,
 in-place application writes and automatic reboot from the network helper. These
 choices implement the already agreed OTA contract; no deployment is authorized by
 successful tests. Roll out only after bench validation and the user's rollout approval.
+
+
+## Status delivery
+
+`BardBoxOTAStatus.h` prepares a bounded JSON report only after reserving a durable
+sequence. The event carries the measured running image identity separately from
+the assigned version; a confirmed report must match the candidate. Retry the exact
+prepared object after a missing response, with bounded worker backoff. Do not
+prepare a fresh event on every transport retry: that creates needless NVS writes.
+After reboot discard the RAM event and reserve a new sequence before reporting.
+A failed or uncertain save produces no report and disables the state machine
+until verified reload. Exhausted 32-bit counters never wrap.
+
+`OTAHTTPSESP32::report` uses the same verified origin, CA and timeouts as delivery.
+Only HTTP 200 acknowledges this endpoint. Transport failures, 408, 429 and server
+failures request later retry. Other 4xx require assignment/config reconciliation;
+a stopped or replaced assignment must not generate a tight retry loop. A worker
+must cap retries and coalesce byte-progress reports; this helper does not schedule
+itself or clear pending events. Persisted phase transitions remain authoritative
+when an intermediate RAM report is superseded.
+
+Native tests compile the actual event encoder, check rejection and uncertain
+persistence, and submit its JSON to the service. They cover duplicate acceptance
+and counters across the signed 32-bit boundary up to unsigned exhaustion. ESP32
+compile/link includes the actual HTTPS POST method. Live TLS/HTTP delivery and
+project scheduling remain integration/physical tests, not established by these
+checks. CESH's service receives the shared counter-range fix; its firmware has not
+yet adopted these status helpers. RKC does not currently consume this capability.
