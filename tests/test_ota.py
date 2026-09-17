@@ -214,3 +214,23 @@ def test_assignment_generation_exhaustion_is_fail_closed(setup, tmp_path):
     assert response.status_code == 409
     with sqlite3.connect(db_path) as db:
         assert db.execute('SELECT COUNT(*) FROM assignments').fetchone()[0] == 1
+
+
+def test_new_assignment_preserves_last_report_without_claiming_confirmation(setup):
+    make, headers, package = setup
+    c = make()
+    assignment = upload_assign(c, headers, package)
+    auth = {'Authorization': 'Bearer device-a'}
+    assert c.post('/ota/v1/device/status', headers=auth, json=status(package)).status_code == 200
+    assignment['request_id'] = 'request-2'
+    assert c.post('/ota/v1/admin/assignments', headers=headers, json=assignment).json()['generation'] == 2
+    devices = make().get('/ota/v1/admin/overview', headers=headers).json()['devices']
+    a, b = devices
+    assert a['assignment']['generation'] == 2 and a['status'] is None
+    assert a['last_report']['generation'] == 1 and a['last_report']['running_version'] == '0.7.0'
+    assert a['last_report_at'] > 0
+    assert b['last_report'] is None and b['last_report_at'] is None
+    next_status = status(package, generation=2, state='rolled_back', failure='previous_image_running')
+    assert c.post('/ota/v1/device/status', headers=auth, json=next_status).status_code == 200
+    a = make().get('/ota/v1/admin/overview', headers=headers).json()['devices'][0]
+    assert a['last_report'] == a['status'] == next_status

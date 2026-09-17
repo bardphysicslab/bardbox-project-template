@@ -118,3 +118,17 @@ checks. Back up proxy configuration, run `nginx -t`, and reload only after it pa
 Verify through the public HTTPS proxy, not only the local application. Other proxy
 products need the equivalent narrowly scoped limit. This was observed on CESH's
 first bench upload; it is a deployment requirement, not a reason to weaken OTA checks.
+
+
+## Operator status presentation
+
+The current assignment's status is distinct from the device's last reported image.
+Overview responses retain `last_report` and its server receipt time across a new
+assignment, while `status` remains empty until that assignment reports. The page
+uses the older report only for the last-reported version; it never confirms a new
+assignment from a previous outcome. Contact freshness remains separate from both.
+
+The device table stacks labelled fields and controls on narrow displays. Activity
+entries describe uploads, assignments and stopped delivery in plain language.
+Browser checks cover unauthenticated rejection, authenticated rendering, mobile
+layout, and opening/canceling review without submitting an assignment.

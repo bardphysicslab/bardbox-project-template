@@ -1,1 +1,16 @@
 .panel{background:var(--panel);border:1px solid var(--panel-border);border-radius:8px;padding:16px;margin:20px 0}h1{font-size:26px}h2{font-size:18px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--panel-border)}th{color:var(--muted)}label{display:block;margin:12px 0}input{display:block;margin:8px 0}button,select{min-height:40px;border:1px solid var(--panel-border);border-radius:6px;padding:9px 12px;background:var(--panel-alt);color:var(--text)}button{cursor:pointer}button:disabled{opacity:.5;cursor:wait}:focus-visible{outline:2px solid var(--warn);outline-offset:3px}.muted{color:var(--muted)}.error{color:var(--bad)}dialog{max-width:500px;background:var(--panel);color:var(--text);border:1px solid var(--panel-border);border-radius:8px}dialog::backdrop{background:#000b}#notice{min-height:24px}td select{max-width:210px;margin-right:8px}@media(max-width:600px){h1{font-size:22px}.shell{padding:0 14px 30px}}
+
+/* Keep actions visible and long release identifiers readable on narrow screens. */
+th,td{white-space:normal;overflow-wrap:anywhere}
+td select{display:block;width:100%;max-width:100%;margin:0 0 8px}
+td button{margin:0 6px 6px 0}
+#audit{padding-left:20px}#audit li{margin-bottom:10px;overflow-wrap:anywhere}
+@media(max-width:900px){
+ .table-wrap{border:0;overflow:visible}
+ table,tbody,tr,td{display:block;width:auto}
+ thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ tr{border:1px solid var(--panel-border);border-radius:8px;margin-top:12px;padding:4px 12px}
+ td{padding:9px 0;border:0;min-width:0}
+ td::before{content:attr(data-label);display:block;color:var(--muted);font-weight:600;font-size:12px;margin-bottom:4px}
+ td[colspan]::before{display:none}
+}

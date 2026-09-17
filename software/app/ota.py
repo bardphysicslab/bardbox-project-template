@@ -303,10 +303,15 @@ def create_ota_router(config, root, page_path=None):
             for uid, registration in devices.items():
                 latest = store.latest(uid)
                 status = json.loads(latest['status']) if latest and latest['status'] else None
+                previous = db.execute(
+                    'SELECT payload,received FROM events WHERE uid=? ORDER BY generation DESC,sequence DESC LIMIT 1',
+                    (uid,)).fetchone()
+                last_report = json.loads(previous['payload']) if previous else None
                 seen = db.execute('SELECT received FROM contacts WHERE uid=?', (uid,)).fetchone()
                 seen = seen[0] if seen else None
                 rows.append({'uid':uid, **{k:registration[k] for k in ('component','target','layout','config_schema','queue_schema','slot_bytes')},
                              'assignment':latest, 'status':status, 'last_seen':seen,
+                             'last_report':last_report, 'last_report_at':previous['received'] if previous else None,
                              'stale':seen is None or time.time()-seen > config.get('stale_after_s', 900)})
             audit = [dict(r) for r in db.execute('SELECT * FROM audit ORDER BY id DESC LIMIT 100')]
         return {'devices':rows, 'releases':releases, 'audit':audit}

@@ -47,3 +47,27 @@ test('review requires a selected compatible release',async()=>{
   select.value='r1';select.onchange();assert.equal(button.disabled,false);
   select.value='';select.onchange();assert.equal(button.disabled,true);
 });
+
+test('activity uses readable descriptions and malformed entries are harmless',async()=>{
+  const {elements,pending,context}=page();
+  pending[0]({devices:[{uid:'node-one',slot_bytes:1}],releases:[],audit:[
+    {created:0,actor:'operator',action:'assign',details:JSON.stringify({uid:'node-one',release_id:'v1',generation:4})},
+    {created:0,actor:'operator',action:'stop_delivery',details:'not JSON'},
+    {created:0,actor:'operator',action:'stop_delivery',details:'null'}]});
+  await settle();
+  assert.equal(elements.get('notice').textContent,'1 registered device.');
+  const entries=elements.get('audit').children.map(e=>e.textContent);
+  assert.equal(entries[0],'1970-01-01 00:00:00 UTC · operator · Assigned v1 to node-one.');
+  assert(entries.slice(1).every(text=>text.endsWith('Update activity recorded.')));
+  assert.equal(vm.runInContext(`activityText({action:'stop_delivery',details:'{"uid":"node-one"}'})`,context),'Stopped further downloads for node-one.');
+});
+
+test('previous firmware version does not confirm a new assignment',async()=>{
+  const {elements,pending}=page();
+  pending[0]({devices:[{uid:'node-one',slot_bytes:1,assignment:{release_id:'next',active:0},
+    status:null,last_report:{running_version:'0.8.1',state:'confirmed'}}],releases:[],audit:[]});
+  await settle();
+  const cells=elements.get('devices').children[0].children;
+  assert.equal(cells[1].textContent,'0.8.1');
+  assert.equal(cells[3].textContent,'assigned · delivery stopped');
+});

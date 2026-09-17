@@ -6,18 +6,29 @@ async function api(path, payload) {
     ...(payload===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json','X-Bardbox-OTA':'1'},body:JSON.stringify(payload)})});
   const data=await r.json();if(!r.ok){const error=new Error(typeof data.detail==='string'?data.detail:'Request failed');error.status=r.status;throw error;}return data;
 }
-function cell(row,text){const c=document.createElement('td');c.textContent=text;row.append(c);return c;}
+const columns=['Device','Last reported version','Assigned release','Update status','Last contact (UTC)','Action'];
+function cell(row,text){const c=document.createElement('td');c.setAttribute('data-label',columns[row.children.length]||'');c.textContent=text;row.append(c);return c;}
+function activityText(a){
+ if(a.action==='release')return `Release ${a.details} uploaded and verified.`;
+ let details;try{details=JSON.parse(a.details);}catch{return 'Update activity recorded.';}
+ if(!details||typeof details.uid!=='string')return 'Update activity recorded.';
+ if(a.action==='assign'&&typeof details.release_id==='string')return `Assigned ${details.release_id} to ${details.uid}.`;
+ if(a.action==='stop_delivery')return `Stopped further downloads for ${details.uid}.`;
+ return 'Update activity recorded.';
+}
+function utcTime(seconds){return new Date(seconds*1000).toISOString().replace('T',' ').slice(0,19);}
+
 let refreshGeneration=0;
 async function refresh(){
  const generation=++refreshGeneration;
  try {
   const data=await api('overview');if(generation!==refreshGeneration)return;el('devices').replaceChildren();
   for(const d of data.devices){
-   const row=document.createElement('tr');cell(row,d.uid);cell(row,d.status?.running_version||'—');
+   const row=document.createElement('tr');cell(row,d.uid);cell(row,d.status?.running_version||d.last_report?.running_version||'—');
    cell(row,d.assignment?.release_id||'—');
    const state=(d.status?.state|| (d.assignment?'assigned':'No update assigned')).replaceAll('_',' ');
    cell(row,state+(d.status?.bytes?' · '+d.status.bytes.toLocaleString()+' bytes':'')+(d.status?.failure&&d.status.failure!=='none'?' · '+d.status.failure:'')+(d.assignment&&!d.assignment.active?' · delivery stopped':'')+(d.stale?' · no recent report':''));
-   cell(row,d.last_seen?new Date(d.last_seen*1000).toISOString():'—');
+   cell(row,d.last_seen?utcTime(d.last_seen):'—');
    const action=cell(row,'');const select=document.createElement('select');select.setAttribute('aria-label','Release for '+d.uid);
    const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Select compatible release';select.append(placeholder);
    for(const r of data.releases.filter(r=>['component','target','layout','config_schema','queue_schema'].every(k=>r[k]===d[k])&&r.size<=d.slot_bytes)){
@@ -39,8 +50,8 @@ async function refresh(){
    el('devices').append(row);
   }
   if(!data.devices.length){const row=document.createElement('tr');const c=cell(row,'No OTA devices registered yet.');c.colSpan=6;el('devices').append(row);}
-  el('audit').replaceChildren();for(const a of data.audit){const li=document.createElement('li');li.textContent=`${new Date(a.created*1000).toISOString()} · ${a.actor} · ${a.action} · ${a.details}`;el('audit').append(li);}
-  notice(data.devices.length+' registered devices.');
+  el('audit').replaceChildren();for(const a of data.audit){const li=document.createElement('li');li.textContent=`${utcTime(a.created)} UTC · ${a.actor} · ${activityText(a)}`;el('audit').append(li);}
+  notice(data.devices.length+' registered '+(data.devices.length===1?'device.':'devices.'));
  }catch(e){if(generation===refreshGeneration)notice(e.message,true);}
 }
 el('refresh').onclick=refresh;
