@@ -43,7 +43,7 @@ When adding or changing BardBox firmware:
 6. Use transport recovery helpers only when the firmware uses that transport. I2C recovery is an opt-in layer above `Wire.h`; do not fork or replace Arduino transport libraries.
 7. Recovery must be bounded and observable: count failures, apply cooldowns, report health/diagnostics, and avoid infinite reset loops.
 8. Preserve backwards compatibility by default. Existing node configs must still compile, and existing UID, protocol, commands, payload/CSV fields, and deployed behavior must not change unless a separately approved migration requires it.
-9. Prefer additive defaults: new configuration knobs must have defaults so older `secrets.h`/project configs remain valid.
+9. Prefer additive defaults: new configuration knobs must have defaults so older project configs remain valid.
 10. A project may make validation stricter than the template, but it may not weaken the shared compatibility and safety requirements without explicit maintainer approval.
 
 Canonical platform work is tracked in `bardphysicslab/bardbox` issue #13.
@@ -52,3 +52,5 @@ For the optional reference storage components, follow `docs/compact-storage-adop
 Preserve queue-format compatibility across OTA rollback, and distinguish host tests
 from physical retention and power-loss validation. Do not enable storage or OTA
 for a project without its platform-specific adapter and commissioning procedure.
+
+Use tracked `config.example.h` and ignored local `config.h` for firmware configuration. Preserve values when migrating legacy private `secrets.h`; never replace them with example defaults. Follow canonical `docs/repository-layout.md` for ECAD/MCAD and software locations.
