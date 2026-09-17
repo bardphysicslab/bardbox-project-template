@@ -12,6 +12,8 @@ into app or firmware code.
 BardBox Tools provides an offline audit, bounded live-read adapters, a durable
 journal and a disabled-by-default Trello writer in its task-sync branch. These are
 building blocks for reviewed actions, not configured unattended synchronization.
-Two-sided conflict tracking, reviewed identity adoption, credentials, board/list
-mappings and live validation still require a separate setup. This template does
+Durable conflict guards, reviewed identity/baseline adoption helpers and read-only
+two-sided planning are also available. GitHub writes, adoption orchestration, policy
+persistence, credentials, board/list mappings and live validation remain separate
+setup work. This template does
 not enable automatic external mutations or copy the shared implementation.
