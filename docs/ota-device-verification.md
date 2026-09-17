@@ -98,3 +98,20 @@ reboots and corrupt/truncated records; physical NVS power-loss tests remain pend
 Server device registrations now require an explicit `component`, such as `app`,
 matching the manifest and device configuration. Update draft OTA configuration
 accordingly. OTA stays disabled unless configured; measurement APIs are unchanged.
+
+
+## Arduino startup acceptance
+
+For an Arduino ESP32 installer that owns boot validation, define a strong C-linkage
+`verifyRollbackLater()` returning `true` in exactly one compiled translation unit.
+The framework's weak default otherwise marks a pending image valid during
+`initArduino()`, before project setup and storage/acquisition checks. Verify the
+final ELF resolves the hook as a strong symbol and test rollback on hardware;
+checking SDK configuration alone is insufficient. CESH is the current consumer;
+projects without this installer must not adopt the override without a validator.
+
+Complete queue mounting and index recovery before publishing initial storage
+health to the validator. A lazily initialized readiness flag is not evidence of
+broken storage. Exercise empty and non-empty queue startup, metadata-write failure,
+and retention of the oldest queued record. CESH's first signed bench image exposed
+both of these integration gaps; host helper tests alone had not covered startup.

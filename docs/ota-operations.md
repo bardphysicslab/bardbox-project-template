@@ -105,3 +105,16 @@ Pilot v1 retains event/audit history. Monitor disk space and back up before any
 future retention pruning. Keep the service disabled until commissioning checks
 pass. Browser and bench validation, live configuration, key provisioning, compact
 queue integration and device installation are separate unfinished gates.
+
+## Reverse-proxy upload limit
+
+The admin release request contains a signed manifest and base64 firmware. A 2 MiB
+binary expands to about 2.67 MiB before JSON overhead; nginx's default 1 MiB limit can
+reject it with HTTP 413 before signature verification. For an adopting nginx deployment,
+set `client_max_body_size 3m` on the exact `/ota/v1/admin/releases` location and
+preserve the same upstream and forwarded headers as the application route. Keep
+the application's 3 MiB request and 2 MiB image limits, authentication and origin
+checks. Back up proxy configuration, run `nginx -t`, and reload only after it passes.
+Verify through the public HTTPS proxy, not only the local application. Other proxy
+products need the equivalent narrowly scoped limit. This was observed on CESH's
+first bench upload; it is a deployment requirement, not a reason to weaken OTA checks.
