@@ -51,7 +51,7 @@ hide or create failures that are not reproducible elsewhere.
 From the repository root:
 
 ```bash
-/opt/homebrew/bin/python3.12 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements-dev.txt
@@ -61,21 +61,25 @@ python -m pytest
 Runtime dependencies remain in `requirements.txt`; development/test additions
 are in `requirements-dev.txt`.
 
-The repository also includes a Python 3.12 Dev Container. A clean Linux smoke
-test can be run with:
+The repository includes a Python 3.12 Dev Container. With Docker running, validate
+an identified committed revision in a fresh Linux container:
 
 ```bash
-docker build \
-  -f .devcontainer/Dockerfile \
-  -t bardbox-project-template-dev \
-  .
-
-docker run --rm \
-  -v "$PWD":/workspaces/bardbox-project-template \
-  -w /workspaces/bardbox-project-template \
-  bardbox-project-template-dev \
-  sh -lc "python -m pip install -r requirements-dev.txt && python -m pytest"
+bash scripts/validate_container.sh HEAD
 ```
+
+The runner prints the source commit, image identity/platform, interpreter and
+resolved package versions. It builds from committed `.devcontainer` files and
+streams a committed source archive into temporary container storage. Local edits,
+untracked files and host virtual environments are excluded; commit intended changes
+before using this as validation evidence. No host credentials, socket or hardware
+are mounted. Dependencies require network access; fixture tests do not require
+production devices. Containers are removed on exit; build images/cache remain for
+reuse. This validates the native Docker architecture, not all CPU architectures.
+
+CI runs the same command alongside isolated Python tests. The image tag and some
+dependency ranges can resolve differently later; retain the printed evidence for
+release reproducibility. Production Pi services continue to run natively/systemd.
 
 A template change should pass both the repository's isolated local environment
 and the clean Linux container before it is treated as a portable BardBox
