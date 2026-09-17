@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from software.app.data_api import create_data_api_router
+from software.app.ota_bootstrap import install_ota
 from software.app.drivers.example_driver import ExampleDriver
 
 
@@ -23,6 +24,7 @@ DEFAULT_CONFIG_PATH = BASE_DIR / "config" / "app_config.example.json"
 APP_CONFIG_PATH = BASE_DIR / "config" / "app_config.json"
 
 app = FastAPI(title="Bard Box Project Template")
+OTA_ENABLED = install_ota(app)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
@@ -221,6 +223,7 @@ def landing(request: Request):
             "request": request,
             "title": APP_CONFIG.get("title", "Example Deployment Monitor"),
             "app_id": APP_CONFIG.get("app_id", "bb-example-monitor"),
+            "ota_enabled": OTA_ENABLED,
         },
     )
 

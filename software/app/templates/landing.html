@@ -20,6 +20,7 @@
         <p>Live device status and environmental readings.</p>
       </section>
       <section class="landing-grid" aria-label="Application views">
+        {% if ota_enabled %}<a class="landing-card" href="/firmware"><h3>Firmware updates</h3><p>Manage signed releases and device updates.</p></a>{% endif %}
         <a class="landing-card" href="/monitor">
           <h3>Live monitor</h3>
           <p>Current values, node health, status details, and historical-data presentation.</p>

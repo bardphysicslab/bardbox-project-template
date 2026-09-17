@@ -11,3 +11,6 @@ data/*
 
 # Server-local deployment configuration (may contain secrets)
 software/app/config/app_config.json
+
+# Private USB commissioning inputs (use this ignored directory)
+.provisioning/

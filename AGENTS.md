@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Agent Instructions
 
 ## BardBox standards first
@@ -7,6 +6,8 @@ The canonical standards live in the separate `bardbox` repository. Do not create
 
 - `docs/web-node-protocol.md`
 - `docs/transport-recovery-standard.md`
+- `docs/compact-record-storage.md` when adding offline storage
+- `docs/ota-update-standard.md` when adding firmware updates
 - `docs/gpt-instructions.md`
 
 in the canonical `bardbox` repository before changing protocol, buffering, upload, recovery, node health, or dashboard availability behavior.
@@ -29,8 +30,6 @@ Apply the same outcomes to other transports, but do not copy HTTP-specific imple
 ## Compatibility
 
 Add health and diagnostic fields without breaking existing payloads, commands, dashboards, or stored records. Preserve protocol-version compatibility; firmware and protocol versions are separate. Test fault paths deterministically and update the firmware version for any deployed firmware behavior change.
-=======
-# BardBox contributor / agent rules
 
 ## Firmware sensor reliability
 
@@ -48,4 +47,8 @@ When adding or changing BardBox firmware:
 10. A project may make validation stricter than the template, but it may not weaken the shared compatibility and safety requirements without explicit maintainer approval.
 
 Canonical platform work is tracked in `bardphysicslab/bardbox` issue #13.
->>>>>>> 8496c59 (Add agent rules for sensor validation and recovery)
+
+For the optional reference storage components, follow `docs/compact-storage-adoption.md`.
+Preserve queue-format compatibility across OTA rollback, and distinguish host tests
+from physical retention and power-loss validation. Do not enable storage or OTA
+for a project without its platform-specific adapter and commissioning procedure.
