@@ -69,3 +69,15 @@ that acquisition continues, queued records survive, and replay completes
 oldest-first without lost or duplicated records before enabling restart.
 The helper handles Wi-Fi association only; server-only upload failures still
 need the project's transport retry policy.
+
+## Local configuration
+
+When a firmware variant needs per-device settings, use `src/config.example.h`
+(tracked placeholders) and `src/config.h` (ignored local values). Rename an existing
+private `secrets.h` locally without replacing its values. This template's simple
+simulator currently has no private configuration header to rename. Do not add
+credentials to it merely to match another project's configuration needs.
+
+Use `hardware/ecad` for KiCad and `hardware/mcad` for mechanical/enclosure files.
+Keep separate firmware projects under `software/firmware/<project>`; a single
+project may use this directory directly.
