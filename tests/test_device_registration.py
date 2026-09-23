@@ -143,6 +143,59 @@ def test_reopening_with_an_unresolvable_persisted_profile_and_no_prior_snapshot_
         RegistrationStore(tmp_path, sensor_profiles={})  # profile no longer configured either
 
 
+def test_a_legacy_row_fails_even_when_currently_resolvable_since_this_template_has_no_known_defaults(tmp_path):
+    # The deeper point: it's not enough that the name happens to resolve
+    # in TODAY's config -- this template ships no compiled defaults at
+    # all, so NO name has trusted historical metadata. Must still fail,
+    # not silently trust whatever the current config says.
+    custom = {'rkc_freezer_v1': RKC_PROFILE}
+    store = RegistrationStore(tmp_path, sensor_profiles=custom)
+    store.stage(UID, 'Freezer 01', 'rkc_freezer_v1', 'engineer')
+    with store.connection() as db:
+        db.execute('UPDATE registrations SET sensor_profile_snapshot=NULL WHERE uid=?', (UID,))
+
+    with pytest.raises(RegistrationError):
+        # Still currently resolvable here -- must be rejected anyway.
+        RegistrationStore(tmp_path, sensor_profiles=custom)
+
+
+def test_a_legacy_row_with_a_changed_target_under_the_same_name_is_rejected_not_guessed(tmp_path):
+    # Same-name changed-target regression: if config changes a profile's
+    # OWN metadata (here: target) in the same update that would migrate
+    # a legacy row under that name, the row must not be silently frozen
+    # with the new value -- exactly the retroactive-retarget bug this
+    # mechanism exists to prevent, relocated to the migration boundary.
+    original = {'rkc_freezer_v1': RKC_PROFILE}
+    store = RegistrationStore(tmp_path, sensor_profiles=original)
+    store.stage(UID, 'Freezer 01', 'rkc_freezer_v1', 'engineer')
+    with store.connection() as db:
+        db.execute('UPDATE registrations SET sensor_profile_snapshot=NULL WHERE uid=?', (UID,))
+
+    # Even though 'rkc_freezer_v1' IS currently configured, this
+    # template has no COMPILED historical default for it -- so a
+    # legacy row under this name still requires explicit
+    # reconciliation, regardless of whether the current value changed.
+    changed = {'rkc_freezer_v1': dict(RKC_PROFILE, target='rkc-freezer-monitor-v2')}
+    with pytest.raises(RegistrationError):
+        RegistrationStore(tmp_path, sensor_profiles=changed)
+
+
+def test_revoking_an_unresolvable_legacy_row_actually_unblocks_startup(tmp_path):
+    # The error message recommends revoking the problematic row, so
+    # revoking it must actually work -- the backfill must not still
+    # choke on a REVOKED row it can never safely migrate either, since
+    # live_entries() never reads a revoked row's snapshot anyway.
+    custom = {'rkc_freezer_v1': RKC_PROFILE}
+    store = RegistrationStore(tmp_path, sensor_profiles=custom)
+    store.stage(UID, 'Freezer 01', 'rkc_freezer_v1', 'engineer')
+    with store.connection() as db:
+        db.execute('UPDATE registrations SET sensor_profile_snapshot=NULL WHERE uid=?', (UID,))
+    store.revoke(UID, 'engineer', 'unblocking a legacy migration conflict')
+
+    reopened = RegistrationStore(tmp_path, sensor_profiles={})
+    assert reopened.live_entries() == {}
+
+
 # --- Cross-project isolation ------------------------------------------
 
 def test_two_independently_configured_stores_cannot_select_each_others_profiles(tmp_path):

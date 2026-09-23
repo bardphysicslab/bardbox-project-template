@@ -184,27 +184,51 @@ class RegistrationStore:
 
     def _backfill_sensor_profile_snapshots(self, db):
         # One-time migration for rows that predate the snapshot column
-        # (or, defensively, any row that somehow lacks one): freeze
-        # today's config as their snapshot now, since no earlier
-        # snapshot ever existed to recover. If a persisted row's profile
-        # name isn't even resolvable in the CURRENT config, there is
-        # nothing safe to freeze -- fail loudly with an actionable
-        # message rather than silently drop compatibility data or defer
-        # the failure to whatever request happens to call live_entries()
-        # next.
+        # (or, defensively, any row that somehow lacks one). The naive
+        # version of this (freeze whatever CURRENT config says a name
+        # means) reintroduces the exact retroactive-retarget bug this
+        # whole mechanism exists to prevent, just relocated to the
+        # migration boundary: if a project changes a same-named
+        # profile's metadata in the SAME config update that ships this
+        # migration, a legacy row would silently be frozen with the NEW
+        # metadata instead of what was actually true when it was staged.
+        #
+        # Only this module's own compiled SENSOR_PROFILES dict is
+        # treated as trustworthy history. This template's own default is
+        # empty, so in practice EVERY legacy row here requires explicit
+        # reconciliation -- there is no compiled default a project could
+        # have been relying on, unlike a project that forks this module
+        # and adds its own compiled defaults (in which case a legacy row
+        # under one of ITS known names would use that trusted value, and
+        # be rejected outright if the current config has since diverged
+        # from it -- never guessed).
+        #
+        # Revoked rows are excluded: live_entries() never reads a
+        # revoked registration's snapshot (it only selects ISSUED/
+        # ACTIVATED), so revoking a problematic legacy row is a genuine,
+        # working way to unblock startup -- not a false recommendation.
         rows = db.execute(
-            'SELECT uid, sensor_profile FROM registrations WHERE sensor_profile_snapshot IS NULL').fetchall()
+            'SELECT uid, sensor_profile FROM registrations WHERE sensor_profile_snapshot IS NULL AND status != ?',
+            (REVOKED,)).fetchall()
         for row in rows:
-            profile = self.sensor_profiles.get(row['sensor_profile'])
-            if profile is None:
+            name = row['sensor_profile']
+            known_legacy = SENSOR_PROFILES.get(name)
+            if known_legacy is None:
                 raise RegistrationError(
-                    f'Existing registration {row["uid"]!r} references sensor_profile '
-                    f'{row["sensor_profile"]!r}, which is not in the current sensor_profiles '
-                    'configuration -- refusing to start with stale, unresolvable registration data. '
-                    'Restore that profile in config, or revoke/resolve this registration using the '
-                    'prior configuration before switching.')
+                    f'Existing registration {row["uid"]!r} references sensor_profile {name!r}, which has '
+                    'no known legacy metadata to safely migrate (it predates per-registration snapshots, '
+                    'and is not one of this module\'s own compiled defaults) -- refusing to guess its '
+                    'true historical compatibility fields. Revoke this registration to unblock startup, '
+                    'or explicitly reconcile its metadata before retrying.')
+            current = self.sensor_profiles.get(name)
+            if current is not None and current != known_legacy:
+                raise RegistrationError(
+                    f'sensor_profiles[{name!r}] in the current configuration differs from its known '
+                    f'legacy metadata, and existing registration {row["uid"]!r} predates per-registration '
+                    'snapshots -- refusing to guess which is correct for it. Revoke this registration to '
+                    'unblock startup, or explicitly reconcile its metadata before retrying.')
             db.execute('UPDATE registrations SET sensor_profile_snapshot=? WHERE uid=?',
-                       (json.dumps(profile, sort_keys=True), row['uid']))
+                       (json.dumps(known_legacy, sort_keys=True), row['uid']))
 
     @contextmanager
     def connection(self):
