@@ -263,6 +263,22 @@ def create_ota_router(config, root, page_path=None):
         if scheme.lower() == 'bearer' and token:
             for uid, entry in devices.items():
                 if hmac.compare_digest(digest, entry['token_sha256']):
+                    # Optional hook for a dynamic device registry (see
+                    # device_registry.py): duck-typed so a plain static
+                    # dict (every existing deployment) is completely
+                    # unaffected -- it simply has no such attribute, and
+                    # the digest match above is already authoritative
+                    # for it. For a dynamic registry, the
+                    # `devices.items()` match above is only a SNAPSHOT --
+                    # a concurrent reissue/revoke can supersede it before
+                    # this line runs, so the hook's return value (not the
+                    # snapshot match) is the actual authentication
+                    # verdict: False means the credential is no longer
+                    # current and this request must be rejected exactly
+                    # like a wrong token, not merely skip activation.
+                    note_auth = getattr(devices, 'note_successful_auth', None)
+                    if note_auth is not None and not note_auth(uid, digest):
+                        break
                     return uid
         raise HTTPException(401, 'Device authentication required')
 
