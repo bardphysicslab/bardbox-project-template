@@ -1,5 +1,9 @@
 # bardbox-project-template
 
+Optional shared additions: [compact offline storage](docs/compact-storage-adoption.md)
+and [signed OTA service setup](docs/ota-operations.md). Both require project-specific
+commissioning and device validation before deployment.
+
 `bardbox-project-template` is the BardBox reference implementation and GitHub
 template repo. New monitor projects should be created from this repo.
 

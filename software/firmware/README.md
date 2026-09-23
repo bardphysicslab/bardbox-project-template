@@ -30,6 +30,10 @@ normalizes stale or unavailable API values to `null`.
 
 ## Reliability building blocks
 
+For lossless offline storage, see [compact storage adoption](../../docs/compact-storage-adoption.md).
+The codec and framing are reusable; each project supplies and validates its own
+filesystem, acknowledgement persistence and transport adapter.
+
 New firmware may reuse these sensor- and transport-agnostic headers:
 
 - `include/BardBoxSensorHealth.h`: tracks good samples, consecutive faults,

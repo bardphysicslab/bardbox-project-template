@@ -6,6 +6,8 @@ The canonical standards live in the separate `bardbox` repository. Do not create
 
 - `docs/web-node-protocol.md`
 - `docs/transport-recovery-standard.md`
+- `docs/compact-record-storage.md` when adding offline storage
+- `docs/ota-update-standard.md` when adding firmware updates
 - `docs/gpt-instructions.md`
 
 in the canonical `bardbox` repository before changing protocol, buffering, upload, recovery, node health, or dashboard availability behavior.
@@ -45,5 +47,10 @@ When adding or changing BardBox firmware:
 10. A project may make validation stricter than the template, but it may not weaken the shared compatibility and safety requirements without explicit maintainer approval.
 
 Canonical platform work is tracked in `bardphysicslab/bardbox` issue #13.
+
+For the optional reference storage components, follow `docs/compact-storage-adoption.md`.
+Preserve queue-format compatibility across OTA rollback, and distinguish host tests
+from physical retention and power-loss validation. Do not enable storage or OTA
+for a project without its platform-specific adapter and commissioning procedure.
 
 Use tracked `config.example.h` and ignored local `config.h` for firmware configuration. Preserve values when migrating legacy private `secrets.h`; never replace them with example defaults. Follow canonical `docs/repository-layout.md` for ECAD/MCAD and software locations.

@@ -1,0 +1,2 @@
+-r requirements-ota.txt
+pyserial==3.5
