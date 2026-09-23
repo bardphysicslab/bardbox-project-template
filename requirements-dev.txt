@@ -2,3 +2,4 @@
 -r requirements-ota.txt
 httpx==0.28.1
 pytest>=8,<10
+httpx==0.28.1
