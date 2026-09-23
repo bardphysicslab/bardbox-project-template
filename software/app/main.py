@@ -24,7 +24,11 @@ DEFAULT_CONFIG_PATH = BASE_DIR / "config" / "app_config.example.json"
 APP_CONFIG_PATH = BASE_DIR / "config" / "app_config.json"
 
 app = FastAPI(title="Bard Box Project Template")
-OTA_ENABLED = install_ota(app)
+# install_ota() now returns (enabled, registration_store) -- the store is
+# available here for a project that wants to reuse it (e.g. a telemetry
+# ingestion gate consulting live_uids()), matching the tuple contract
+# device_registration.py's own docstring documents.
+OTA_ENABLED, OTA_REGISTRATION_STORE = install_ota(app)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
