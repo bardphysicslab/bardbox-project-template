@@ -10,6 +10,8 @@ The canonical standards live in the separate `bardbox` repository. Do not create
 
 in the canonical `bardbox` repository before changing protocol, buffering, upload, recovery, node health, or dashboard availability behavior.
 
+Before a refactor or an architectural assessment, read the "Architectural self-check" and "Refactoring with little test coverage" sections of https://github.com/bardphysicslab/bardbox/blob/main/AGENTS.md.
+
 ## Web Node reliability rule
 
 For a network-pushing node, acquisition, immutable completed-record persistence, and upload are independent responsibilities. A failed network operation must not stop sampling or discard a record.
@@ -27,13 +29,16 @@ Apply the same outcomes to other transports, but do not copy HTTP-specific imple
 
 ## Compatibility
 
-Add health and diagnostic fields without breaking existing payloads, commands, dashboards, or stored records. Preserve protocol-version compatibility; firmware and protocol versions are separate. Test fault paths deterministically and update the firmware version for any deployed firmware behavior change.
+Add health and diagnostic fields without breaking existing payloads, commands, dashboards, or stored records. Preserve protocol-version compatibility; firmware and protocol versions are separate. Test fault paths deterministically: the health headers take an explicit `nowMs`, so fault sequences can be driven by a host test or a recorded simulated run. There is no firmware test harness or firmware CI on `main`; record which evidence you used. Update the firmware version for any deployed firmware behavior change.
 
 ## Firmware sensor reliability
 
 When adding or changing BardBox firmware:
 
 1. Use the shared sensor-health/recovery layer for attached sensors.
+   Note: `software/firmware/include/BardBoxSensorHealth.h` (built) and
+   `firmware/include/BardBoxSensorHealth.h` (not built, different API) currently
+   both exist. Do not extend either or include both until a maintainer chooses one.
 2. Keep the common layer sensor-agnostic. Never hard-code a sensor-specific physical range into shared health logic.
 3. Put measurement-specific validity rules with the sensor/measurement definition or project configuration. Rules may include units, min/max, max delta, max rate of change, checksum validation, internal fault flags, or other device-specific constraints.
 4. Treat transport errors, invalid samples, stale data, and device fault indications as distinct fault classes.
