@@ -11,6 +11,8 @@ data/*
 
 # Server-local deployment configuration (may contain secrets)
 software/app/config/app_config.json
+# Firmware Wi-Fi credentials
+software/firmware/include/secrets.h
 
 # Local firmware configuration, including legacy private filenames
 **/config.h

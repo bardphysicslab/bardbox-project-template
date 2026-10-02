@@ -1,5 +1,14 @@
 #include <Arduino.h>
 
+#if __has_include("secrets.h")
+#include "secrets.h"
+#endif
+
+#if defined(BARDBOX_WIFI_SSID) && defined(BARDBOX_WIFI_PASSWORD)
+#include "BardBoxWiFiRecovery.h"
+static bardbox::WiFiRecovery wifiRecovery;
+#endif
+
 static const char *DEVICE_UID = "bb-prj-air-001";
 static const char *FW_VERSION = "1.0.0";
 
@@ -20,6 +29,12 @@ static void sendInfo() {
   Serial.print(DEVICE_UID);
   Serial.print(" fw=");
   Serial.print(FW_VERSION);
+#if defined(BARDBOX_WIFI_SSID) && defined(BARDBOX_WIFI_PASSWORD)
+  Serial.print(" wifi=");
+  Serial.print(wifiRecovery.offline() ? 0 : (WiFi.status() == WL_CONNECTED ? 1 : 0));
+  Serial.print(" wifi_offline_ms=");
+  Serial.print(wifiRecovery.offlineMs(millis()));
+#endif
   Serial.println(" sensors=EXAMPLE");
 }
 
@@ -58,6 +73,11 @@ void setup() {
 }
 
 void loop() {
+#if defined(BARDBOX_WIFI_SSID) && defined(BARDBOX_WIFI_PASSWORD)
+  wifiRecovery.service(BARDBOX_WIFI_SSID, BARDBOX_WIFI_PASSWORD, millis(),
+                       []() {},  // Close project TCP clients here.
+                       []() {}); // Flush durable queued records here.
+#endif
   if (Serial.available() > 0) {
     String command = Serial.readStringUntil('\n');
     handleCommand(command);
