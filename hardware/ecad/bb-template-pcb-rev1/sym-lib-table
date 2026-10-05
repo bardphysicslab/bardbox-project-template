@@ -1,0 +1,4 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "bardbox") (type "KiCad") (uri "/Users/kornelispoort/Code/bardcollege/rkc-monitor/hardware/ecad/components/bardbox.kicad_sym") (options "") (descr ""))
+)
