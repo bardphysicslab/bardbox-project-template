@@ -53,13 +53,13 @@ deployed hardware. Publish the resulting health state through additive
 
 ## Enabling Wi-Fi recovery
 
-The example is serial-only until `include/secrets.example.h` is copied to
-`include/secrets.h` and real credentials are entered. `secrets.h` is ignored by
+The example is serial-only until `src/config.example.h` is copied to
+`src/config.h` and real credentials are entered. `config.h` is ignored by
 Git. With Wi-Fi enabled, `main.cpp` calls `WiFiRecovery::service()` on every
-loop and reports disconnect, retry, recovery, and restart events over serial.
+loop. Automatic events are quiet by default; enable `verbose` only for explicit diagnostics.
 The helper starts association asynchronously. It calls `onDisconnect` once per
 outage so a project can close stale TCP clients, and `beforeRestart` before an
-ESP32 software restart so a project can flush its durable queue or other state.
+ESP32 software restart as a boolean gate. Return true only after durable state is safe and the project's persistent restart budget permits another restart. False defers the restart while reconnects continue. The example returns false until target acceptance; it has no outbound delivery queue.
 
 The 30-second retry and 15-minute restart values came from an RKC node 010
 hardware test. Projects can pass different `WiFiRecoveryConfig` values after
@@ -67,6 +67,11 @@ documenting why. Set `restartAfterMs` to zero until a pushing node's persistent
 queue has been shown to survive an outage and forced restart. For CESH, verify
 that acquisition continues, queued records survive, and replay completes
 oldest-first without lost or duplicated records before enabling restart.
+A reboot resets this helper's RAM state; projects must enforce a restart budget
+across boots before returning true, so a missing access point cannot cause a
+perpetual restart cycle. CESH acceptance remains tracked in
+[its Wi-Fi restart issue](https://github.com/bardphysicslab/cesh-air-monitor/issues/37).
+Follow the [merged BardBox recovery rule](https://github.com/bardphysicslab/bardbox/blob/main/docs/transport-recovery-standard.md).
 The helper handles Wi-Fi association only; server-only upload failures still
 need the project's transport retry policy.
 
@@ -74,9 +79,7 @@ need the project's transport retry policy.
 
 When a firmware variant needs per-device settings, use `src/config.example.h`
 (tracked placeholders) and `src/config.h` (ignored local values). Rename an existing
-private `secrets.h` locally without replacing its values. This template's simple
-simulator currently has no private configuration header to rename. Do not add
-credentials to it merely to match another project's configuration needs.
+private `secrets.h` locally without replacing its values. The serial-only example needs no credentials unless Wi-Fi is deliberately enabled.
 
 Use `hardware/ecad` for KiCad and `hardware/mcad` for mechanical/enclosure files.
 Keep separate firmware projects under `software/firmware/<project>`; a single

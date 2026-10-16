@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
-#if __has_include("secrets.h")
-#include "secrets.h"
+#if __has_include("config.h")
+#include "config.h"
 #endif
 
 #if defined(BARDBOX_WIFI_SSID) && defined(BARDBOX_WIFI_PASSWORD)
@@ -10,7 +10,7 @@ static bardbox::WiFiRecovery wifiRecovery;
 #endif
 
 static const char *DEVICE_UID = "bb-prj-air-001";
-static const char *FW_VERSION = "1.0.0";
+static const char *FW_VERSION = "1.1.0";
 
 static float readTemperatureC() {
   return 21.5f;
@@ -76,7 +76,7 @@ void loop() {
 #if defined(BARDBOX_WIFI_SSID) && defined(BARDBOX_WIFI_PASSWORD)
   wifiRecovery.service(BARDBOX_WIFI_SSID, BARDBOX_WIFI_PASSWORD, millis(),
                        []() {},  // Close project TCP clients here.
-                       []() {}); // Flush durable queued records here.
+                       []() { return false; }); // Enable only after target restart acceptance.
 #endif
   if (Serial.available() > 0) {
     String command = Serial.readStringUntil('\n');
