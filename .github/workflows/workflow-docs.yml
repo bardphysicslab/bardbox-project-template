@@ -1,0 +1,16 @@
+name: Workflow documentation
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  scaffold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check workflow scaffold and local links
+        run: |
+          python3 scripts/check_workflow_docs.py
+          python3 -m unittest discover -s tests -p test_workflow_docs.py
