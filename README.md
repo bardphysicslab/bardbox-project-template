@@ -7,6 +7,13 @@ The canonical standards live in the separate `bardbox` repo. This template
 implements those standards in working code: FastAPI backend, example driver,
 dark BardBox dashboard, PlatformIO firmware example, scripts, docs, and tests.
 
+## Decision history and contribution workflow
+
+See the [implementation decision index](docs/DECISIONS.md), which links shared
+platform reasoning back to BardBox. Use the issue and pull-request prompts with
+the [shared development workflow](https://github.com/bardphysicslab/engineering-standards/blob/main/development-workflow.md).
+Routine fixes stay brief; shared specifications are not copied into this template.
+
 ## Repo Roles
 
 `bardbox` is the standards/specification repo.
