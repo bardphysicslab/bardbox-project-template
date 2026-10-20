@@ -37,7 +37,7 @@
 // this file, and have no defaults.
 
 // ---------------------------------------------------------------------------
-// Buffer (BardBoxBuffer) -- M1 keeps records in RAM only, not persistent yet
+// Buffer (BardBoxBuffer) -- persistent queue on LittleFS (host-tested only)
 // ---------------------------------------------------------------------------
 
 // Recording interval, in seconds: how often a completed record is created and
@@ -46,5 +46,9 @@
 // sensor cadence.
 #define BARDBOX_RECORDING_INTERVAL_S 60
 
-// Records kept in memory (1..64).
+// Persistent queue capacity, in records (2..1024). At capacity the oldest
+// unacknowledged record is kept and the next oldest is evicted (counted loss).
+#define BARDBOX_BUFFER_CAPACITY_RECORDS 256
+
+// Records held in RAM while storage is unavailable or a write failed (1..64).
 #define BARDBOX_BUFFER_RAM_RECORDS 8

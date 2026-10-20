@@ -15,13 +15,19 @@ for lib in BardBoxSerial BardBoxBuffer BardBoxNetwork BardBoxMeasurements BardBo
 done
 # Host tests never read the developer's private include/config.h: module
 # defaults apply because include/ is not on this include path.
-$CXX -std=c++17 -Wall -Wextra -Werror $inc $srcs "$here/test_m1.cpp" -o "$out/test_m1"
+$CXX -std=c++11 -Wall -Wextra -Werror -I"$here" $inc $srcs "$here/test_m1.cpp" -o "$out/test_m1"
 "$out/test_m1"
+
+# Durable Buffer tests with a small capacity so saturation is exercised.
+$CXX -std=c++11 -Wall -Wextra -Werror -DBARDBOX_BUFFER_CAPACITY_RECORDS=4 \
+  -I"$here" -I"$fw/lib/BardBoxBuffer/src" "$fw/lib/BardBoxBuffer/src/BardBoxBuffer.cpp" \
+  "$fw/lib/BardBoxBuffer/src/BardBoxRecordCodec.cpp" "$here/test_buffer.cpp" -o "$out/test_buffer"
+"$out/test_buffer"
 
 # The version guard must stop a build with no or an empty FIRMWARE_VERSION.
 for body in '' '#define FIRMWARE_VERSION ""'; do
   printf '%s\n#include <BardBoxInterface.h>\nint main(){BardBoxInterface b; return b.begin();}\n' "$body" > "$out/version_guard.cpp"
-  if $CXX -std=c++17 $inc -fsyntax-only "$out/version_guard.cpp" 2> "$out/version_guard.log"; then
+  if $CXX -std=c++11 $inc -fsyntax-only "$out/version_guard.cpp" 2> "$out/version_guard.log"; then
     echo "version guard did not fail for: [$body]" >&2; exit 1
   fi
   grep -q "Please set FIRMWARE_VERSION in main.cpp." "$out/version_guard.log" || {

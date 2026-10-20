@@ -174,8 +174,12 @@ void BardBoxSerial::writeInfo(SerialLine &line) {
   } else {
     line.text(" record=none");
   }
-  line.text(" buffered=").uint(st.buffered).text(" backpressure=").uint(st.backpressure);
-  line.text(" skipped=").uint(st.skippedBoundaries).text(" storage=").text(st.storage);
+  line.text(" storage=").text(st.storage).text(st.durable ? " durable=yes" : " durable=no");
+  line.text(" stored=").uint(st.stored).text(" capacity=").uint(st.capacity);
+  line.text(" evicted=").uint(st.evicted).text(" pending_ram=").uint(st.pendingRam);
+  line.text(" lost_ram=").uint(st.lostRam).text(" write_failures=").uint(st.writeFailures);
+  line.text(" interrupted=").uint(st.interrupted).text(" quarantined=").uint(st.quarantined);
+  line.text(" skipped=").uint(st.skippedBoundaries);
   line.text(" net=").text(st.network).text(" acquired_time=unknown reg_errors=").uint(st.registrationErrors);
   line.end();
 }

@@ -74,6 +74,11 @@ class BardBoxInterface : private bbcore::SerialDataSource {
   // ---- Internal: not part of the student workflow ----
   bool beginWithVersion(const char *firmwareVersion);
   bool beginWithPort(Stream &port, const char *firmwareVersion, bool startServiceTask);
+  // Storage for the Buffer; set before begin. ESP32 uses LittleFS by default.
+  void useStorage(bbcore::StorageAdapter *storage) { storage_ = storage; }
+  bbcore::BardBoxBuffer &bufferForDelivery() { return buffer_; }  // future Network owner
+  // Hosts have no hardware random source; tests and demos set a boot ID.
+  void setHostBootId(uint32_t bootId) { hostBootId_ = bootId; }
   void runServiceStep();  // one bounded Serial step, then one recording step
 
  private:
@@ -95,6 +100,8 @@ class BardBoxInterface : private bbcore::SerialDataSource {
   bbcore::BardBoxBuffer buffer_;
   bbcore::BardBoxSerial serial_;
   bbcore::BardBoxNetwork network_;
+  bbcore::StorageAdapter *storage_ = nullptr;
+  uint32_t hostBootId_ = 0x5eed0001u;
   bool begun_ = false;
   const char *firmwareVersion_ = "";
   uint32_t bootId_ = 0;

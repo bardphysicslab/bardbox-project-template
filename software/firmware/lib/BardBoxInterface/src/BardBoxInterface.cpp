@@ -8,6 +8,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #define BARDBOX_INTERFACE_RTOS 1
+#include "BardBoxLittleFsStorage.h"
+static bbcore::LittleFsStorage littleFsStorage;
 #endif
 
 bool BardBoxSensor::addMeasurement(const char *name, const char *unit, MeasurementType type) {
@@ -48,10 +50,14 @@ static void serviceTask(void *arg) {
 
 bool BardBoxInterface::beginWithVersion(const char *firmwareVersion) {
 #if defined(BARDBOX_INTERFACE_RTOS)
+  if (!storage_) storage_ = &littleFsStorage;
   Serial.begin(bbcore::BardBoxSerial::configuredBaud());
   return beginWithPort(Serial, firmwareVersion, true);
 #elif defined(BARDBOX_HOST_DEMO)
-  // Host demo only: the stub's delay() runs the service step.
+  // Host demo only: the stub's delay() runs the service step, and the demo
+  // supplies in-memory storage.
+  extern bbcore::StorageAdapter *g_host_demo_storage;
+  if (!storage_) storage_ = g_host_demo_storage;
   g_host_service = [](void *self) { static_cast<BardBoxInterface *>(self)->runServiceStep(); };
   g_host_service_arg = this;
   return beginWithPort(Serial, firmwareVersion, false);
@@ -68,9 +74,9 @@ bool BardBoxInterface::beginWithPort(Stream &port, const char *firmwareVersion, 
 #if defined(BARDBOX_INTERFACE_RTOS)
   bootId_ = esp_random();
 #else
-  bootId_ = 0x5eed0001u;  // fixed on hosts so tests are deterministic
+  bootId_ = hostBootId_;  // fixed on hosts so tests are deterministic
 #endif
-  buffer_.begin(millis(), bootId_);
+  buffer_.begin(millis(), bootId_, storage_);
   network_.begin();
   serial_.begin(port, *this);
   begun_ = true;
@@ -96,10 +102,18 @@ void BardBoxInterface::status(bbcore::SerialStatus &out) {
   out.firmware = firmwareVersion_;
   out.bootId = bootId_;
   out.recordingIntervalS = BARDBOX_RECORDING_INTERVAL_S;
-  out.buffered = buffer_.buffered();
-  out.backpressure = buffer_.backpressureCount();
-  out.skippedBoundaries = buffer_.skippedBoundaries();
-  out.storage = "ram";
+  const bbcore::BufferStatus b = buffer_.status();
+  out.storage = b.storage;
+  out.durable = b.durable;
+  out.stored = b.stored;
+  out.capacity = b.capacity;
+  out.evicted = b.evicted;
+  out.pendingRam = b.pendingRam;
+  out.lostRam = b.lostRam;
+  out.writeFailures = b.writeFailures;
+  out.interrupted = b.interrupted;
+  out.quarantined = b.quarantined;
+  out.skippedBoundaries = b.skippedBoundaries;
   out.network = network_.statusName();
   out.registrationErrors = measurements_.registrationErrors();
 }

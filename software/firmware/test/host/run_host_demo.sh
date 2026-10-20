@@ -14,7 +14,13 @@ for lib in BardBoxSerial BardBoxBuffer BardBoxNetwork BardBoxMeasurements BardBo
   inc="$inc -I$fw/lib/$lib/src"
   for f in "$fw/lib/$lib/src"/*.cpp; do [ -e "$f" ] && srcs="$srcs $f"; done
 done
-$CXX -std=c++17 -Wall -Wextra -Werror -DBARDBOX_HOST_DEMO \
-  '-DFIRMWARE_VERSION="0.0.0-m1-host-demo"' $inc $srcs "$fw/src/main.cpp" "$here/demo_m1.cpp" \
+$CXX -std=c++11 -Wall -Wextra -Werror -DBARDBOX_HOST_DEMO \
+  '-DFIRMWARE_VERSION="0.0.0-m1-host-demo"' -I"$here" $inc $srcs "$fw/src/main.cpp" "$here/demo_m1.cpp" \
   -o "$out/demo_m1"
 "$out/demo_m1"
+
+echo
+echo "== durable recording across a simulated restart =="
+$CXX -std=c++11 -Wall -Wextra -Werror -DBARDBOX_BUFFER_CAPACITY_RECORDS=4 -I"$here" $inc $srcs \
+  "$here/demo_restart.cpp" -o "$out/demo_restart"
+"$out/demo_restart"

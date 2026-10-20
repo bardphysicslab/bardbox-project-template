@@ -4,6 +4,8 @@
 
 #include <stdio.h>
 
+#include "FakeStorage.h"
+
 #include <string>
 
 uint32_t g_host_millis = 0;
@@ -41,11 +43,13 @@ static void advance(BardBoxInterface &box, uint32_t toMs) {
 }
 
 struct Fixture {
+  FakeStorage fs;
   BardBoxInterface box;
   HostStream io;
   BardBoxSensor bme;
   Fixture() {
     g_host_millis = 1000;
+    box.useStorage(&fs);
     bme = box.addSensor("bme280");
     bme.addMeasurement("humidity", "%");
     bme.addMeasurement("temperature", "degC");
@@ -132,8 +136,9 @@ static void test_records_vs_live() {
   CHECK(f.box.registrationErrors() == 0);
   CHECK_EQ_STR(ask(f.box, f.io, "INFO"),
                "OK INFO uid=unassigned fw=0.0.0-host-test sensors=bme280 wire=v2-candidate "
-               "boot=5eed0001 recording_s=60 record=3 record_ms=181000 buffered=3 backpressure=0 "
-               "skipped=0 storage=ram net=not_implemented acquired_time=unknown reg_errors=0");
+               "boot=5eed0001 recording_s=60 record=3 record_ms=181000 storage=host durable=yes stored=3 "
+               "capacity=256 evicted=0 pending_ram=0 lost_ram=0 write_failures=0 interrupted=0 "
+               "quarantined=0 skipped=0 net=not_implemented acquired_time=unknown reg_errors=0");
   (void)rec;
 }
 
@@ -146,17 +151,23 @@ static void test_never_published_and_skips() {
   CHECK(ask(f.box, f.io, "INFO").find(" skipped=2 ") != std::string::npos);
 }
 
-static void test_backpressure_keeps_latest() {
-  Fixture f;
+static void test_no_storage_loss_is_visible_and_latest_kept() {
+  BardBoxInterface box;  // no storage adapter: RAM retry queue only
+  HostStream io;
+  g_host_millis = 1000;
+  BardBoxSensor bme = box.addSensor("bme280");
+  bme.addMeasurement("humidity", "%");
+  CHECK(box.beginWithPort(io, FIRMWARE_VERSION, false));
   uint32_t t = 1000;
   for (int i = 0; i < BARDBOX_BUFFER_RAM_RECORDS + 2; ++i) {
     t += 60000;
-    f.bme.publish(40.0f + i, 20.0f, 100000.0f);
-    advance(f.box, t);
+    bme.publish(40.0f + i);
+    advance(box, t);
   }
-  const std::string info = ask(f.box, f.io, "INFO");
-  CHECK(info.find(" buffered=8 backpressure=2 ") != std::string::npos);
-  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v2,10,5eed0001,601000,49,20,100000");
+  const std::string info = ask(box, io, "INFO");
+  CHECK(info.find(" storage=none durable=no stored=0 ") != std::string::npos);
+  CHECK(info.find(" pending_ram=8 lost_ram=2 ") != std::string::npos);
+  CHECK_EQ_STR(ask(box, io, "READ"), "DAT,v2,10,5eed0001,601000,49");
 }
 
 static void test_serial_parsing() {
@@ -224,7 +235,7 @@ int main() {
   test_types();
   test_records_vs_live();
   test_never_published_and_skips();
-  test_backpressure_keeps_latest();
+  test_no_storage_loss_is_visible_and_latest_kept();
   test_serial_parsing();
   test_settings();
   test_interleaved_registration();

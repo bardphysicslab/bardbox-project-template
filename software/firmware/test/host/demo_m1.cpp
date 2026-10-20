@@ -6,10 +6,14 @@
 
 #include <string>
 
+#include "FakeStorage.h"
+
 uint32_t g_host_millis = 0;
 HostStream Serial;
 void (*g_host_service)(void *) = nullptr;
 void *g_host_service_arg = nullptr;
+static FakeStorage demoStorage;
+bbcore::StorageAdapter *g_host_demo_storage = &demoStorage;
 
 void setup();
 void loop();
