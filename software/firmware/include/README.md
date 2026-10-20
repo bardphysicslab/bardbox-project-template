@@ -9,8 +9,7 @@ It holds four helpers and the tracked
 `BardBoxSensorHealth.h` and `BardBoxTransportRecovery.h` are policy and state
 trackers only, and `BardBoxSensorValueRule.h` is a pure value check: none of
 them performs hardware, sensor or network I/O. `BardBoxI2CRecovery.h` does
-restart the I2C bus when called. The current simulator `main.cpp` uses none of
-them.
+restart the I2C bus when called. The student `main.cpp` uses none of them.
 
 ## Configuration headers
 
@@ -21,17 +20,18 @@ them.
   `cp -n include/config.example.h include/config.h` (from `software/firmware/`)
   and edit only the copy; never overwrite an existing `config.h`.
 
-**Not consumed yet.** No source file includes either header. The simulator
-`src/main.cpp` includes only `Arduino.h` and hardcodes its values, including
-`Serial.begin(115200)`, so editing `config.h` changes nothing today. C++ uses a
-header only through an explicit `#include`, and the ignore rule is independent
-of that.
+**Read by the BardBox modules.** Each module in `lib/` includes `config.h`
+when it exists, takes its own settings from its section, applies its
+documented default for anything left out, and rejects invalid values at build
+time. `main.cpp` does not include it. An older local copy without the newer
+settings keeps working on the defaults.
 
-| Section | Current contents | Status |
+| Section | Settings | Owner |
 | --- | --- | --- |
-| Serial | `BARDBOX_SERIAL_BAUD 115200` (bit/s) | Matches the simulator's hardcoded value; not read by it |
-| Network | Comments only: Wi-Fi on by default (agreed) | Not implemented; no settings defined |
-| Buffer | Comments only: recording on by default (agreed) | Not implemented; no settings defined |
+| Serial | `BARDBOX_SERIAL_BAUD` (bit/s, default 115200) | `BardBoxSerial` |
+| Identity | `BARDBOX_DEVICE_UID` (default `unassigned`) | `BardBoxInterface` |
+| Network | `BARDBOX_NETWORK_ENABLED` (0/1, default 1); per-phase deadlines, capped retry and idle polling; see module README (no real adapter yet) | `BardBoxNetwork` |
+| Buffer | `BARDBOX_RECORDING_INTERVAL_S` (s, default 60, 5..86400); `BARDBOX_BUFFER_CAPACITY_RECORDS` (default 256, 2..1024); `BARDBOX_BUFFER_RAM_RECORDS` (RAM retry slots, default 8) | `BardBoxBuffer` |
 
 Wi-Fi SSID, password, endpoint and upload credentials are private: they go
 only in the local `config.h` or runtime provisioning and have no defaults.

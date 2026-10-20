@@ -1,23 +1,17 @@
 # BardBoxInterface
 
-Beginner-facing facade: the only BardBox entry student code calls. The name
-`BardBoxInterface` is accepted (October 20, 2026); its methods and results
-are proposed.
+The one student-facing BardBox object. It wires the owners together and implements none of them.
 
 | Contract | Overview |
 | --- | --- |
-| Responsibility | Field registration and `begin`; `poll(nowMs)` progress for the Serial, network and Buffer owners; latest-sample publication; completed-record handoff; shared generic checks; every-record metadata |
-| Inputs | Declared fields with types and units; samples (`publishSample`); completed records the student built, raw or averaged, with window/method metadata (`submitRecord`); `nowMs` |
-| Outputs | Per-channel results (`valid`, `missing`, `invalid`, `failed`); record admission (ticket or rejection) and `recordStatus`; latest snapshot to Serial; records to Buffer |
-| State | Registered schema; latest accepted snapshot and its identity; outstanding record tickets (bounded) |
-| Side effects | Stamps non-secret metadata (UID, MAC, firmware/protocol versions, time validity); never fabricated. No direct I/O of its own |
-| Failures | Registration errors; structurally unusable sample or record rejected whole; coded per-channel nulls; record rejection or backpressure reported, never silently dropped |
-| Dependencies | `BardBoxSerial`, `BardBoxNetwork`, `BardBoxBuffer`, settings and time modules; coordinates them without merging ownership |
-| Compatibility | Existing `INFO`/`HEADER`/`READ` forms unchanged until a versioned contract is adopted |
-| Status | Current scaffold: this README only, no code. Target: unimplemented proposal |
+| Student API | `BardBoxInterface bardbox;`, `bardbox.addSensor(name)` returns a `BardBoxSensor` handle, `sensor.addMeasurement(name, unit[, type])`, `bardbox.begin()` (no arguments), `sensor.publish(values...)` with already-acquired values in declared order, optional `bardbox.getSetting("recording_interval_ms", value)`. No student `poll`, time feeding, record builder or tickets |
+| Orchestration | Forwards registration and publish to `BardBoxMeasurements`; on ESP32 `begin()` starts one FreeRTOS service task that runs a bounded Serial step and a recording step every 10 ms, so service continues during `delay()`. A separate Network task advances an injected transport and exchanges requests/results with the service-task Buffer owner. No transport adapter exists on-device yet. Task priority and stack are candidates |
+| Version | `FIRMWARE_VERSION` must be defined before the header and non-empty, or the build fails; `begin()` is defined only in student translation units, so there is one definition per build. Include the header from one file (`main.cpp`); other files that include it also need the version define with "Please set FIRMWARE_VERSION in main.cpp." Other placeholder values are not rejected yet (open) |
+| Storage | On ESP32, `begin()` gives the Buffer the LittleFS adapter; hosts call `useStorage()` first. The Network owner uses the mailbox; `bufferForDelivery()` is only an owner-task test inspection hook |
+| Configuration | `BARDBOX_DEVICE_UID` (default `unassigned`, the unprovisioned sentinel) |
+| Failures | If the cache mutex or the service task cannot be created, `begin()` returns false and no Serial service is promised. Registration errors make `begin()` return false and appear in `INFO reg_errors` |
+| Dependencies | `BardBoxMeasurements`, `BardBoxBuffer`, `BardBoxSerial`, `BardBoxNetwork` |
 
-Authoritative contracts: [Serial/base API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-base-and-serial-api.md) (student contract draft), [decision index](https://github.com/bardphysicslab/bardbox/blob/main/docs/DECISIONS.md) (BB-005, BB-006).
+Shared contract: [serial/base API](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-base-and-serial-api.md).
 
-Status: role README only, added by the [FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824) scaffold (October
-20, 2026). This folder contains no code; the target contract is not
-implemented and its names are proposals maintained in `bardbox/docs`.
+Status: **progress** ([#36](https://github.com/bardphysicslab/bardbox-project-template/issues/36)): implemented and host-tested with simulated values; built for the Feather ESP32-S3 but not run on hardware. Names, wire forms and behaviors marked candidate are pending review.

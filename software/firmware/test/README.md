@@ -1,14 +1,27 @@
 # test/
 
-Proposed home for this project's host and integration tests (PlatformIO
-`test/`), covering the facade, Serial, network and Buffer owners together with
-a sensorless or simulated consumer. Per-library tests may live in
-`lib/<Library>/` when needed.
+Host tests and a host demo for the BardBox modules. They use the system C++
+compiler (C++11, matching the ESP32 toolchain), a minimal Arduino stub in
+`host/stub/` and an in-memory, fault-injecting storage (`host/FakeStorage.h`).
+Values, storage and restarts are simulated; none of this is board, flash or
+sensor evidence.
 
-No tests exist yet and none run in CI. Acceptance targets are listed in the
-[serial/base API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-base-and-serial-api.md#acceptance-and-implementation-status)
-and [Buffer API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-buffer-api.md).
+From `software/firmware/`:
 
-Status: role README only, added by the [FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824) scaffold (October
-20, 2026). This folder contains no code; the target contract is not
-implemented and its names are proposals maintained in `bardbox/docs`.
+```bash
+test/host/run_host_tests.sh   # module checks, durable Buffer checks, FW-M2 review reproductions, version guard, fake Network delivery
+test/host/run_host_demo.sh    # the unmodified src/main.cpp, then a simulated restart demo
+```
+
+The host build never reads the private `include/config.h`, so module defaults
+apply. `tests/test_firmware_host.py` runs the host tests under pytest when a
+C++ compiler is available.
+
+Status: **progress** ([#36](https://github.com/bardphysicslab/bardbox-project-template/issues/36)): implemented and host-tested with simulated values; built for the Feather ESP32-S3 but not run on hardware. Names, wire forms and behaviors marked candidate are pending review.
+
+Network checks use `host/FakeTransport.h`: no socket, DNS, TLS or server is
+contacted. They verify finite phase deadlines (including delayed wake-up),
+non-2xx retention, exact-token acknowledgements, retry after failed removal,
+original attribution, and FIFO catch-up while recording and Serial continue.
+The emitted `bardbox-delivery-candidate` body is parsed as JSON, not accepted
+as a production protocol. Host time is simulated; task latency is not measured.
