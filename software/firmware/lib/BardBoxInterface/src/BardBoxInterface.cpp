@@ -9,6 +9,7 @@
 #include <freertos/task.h>
 #define BARDBOX_INTERFACE_RTOS 1
 #include "BardBoxLittleFsStorage.h"
+#include "BardBoxEsp32Wifi.h"
 static bbcore::LittleFsStorage littleFsStorage;
 #endif
 
@@ -96,7 +97,15 @@ bool BardBoxInterface::beginWithPort(Stream &port, const char *firmwareVersion, 
   if (!buffer_.begin(millis(), bootId_, storage_, bootId_)) return false;
 #endif
   mailbox_.begin();
-  network_.begin(bbcore::NetworkSettings(), transport_, millis(), mailbox_);
+  bbcore::NetworkSettings networkSettings;
+#if defined(BARDBOX_INTERFACE_RTOS)
+  if (!transport_ && networkSettings.enabled) {
+    bbcore::WifiHttpsTransport &wifi = bbcore::defaultEsp32WifiTransport();
+    networkSettings.endpointConfigured = wifi.configured();
+    if (wifi.configured()) transport_ = &wifi;
+  }
+#endif
+  network_.begin(networkSettings, transport_, millis(), mailbox_);
   serial_.begin(port, *this);
   begun_ = true;
 #if defined(BARDBOX_INTERFACE_RTOS)

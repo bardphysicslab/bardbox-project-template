@@ -18,7 +18,7 @@ the BardBox modules in `lib/` now contain code, host-tested with simulated
 values and built for the supported board, but not run on hardware. This is
 progress toward the first usable template, not its completion: recording
 persists to LittleFS (host-tested with simulated storage and restarts only),
-and Network delivery is host-tested through a simulated transport only. Real Wi-Fi/HTTPS and OTA are not implemented. Start in `src/main.cpp`.
+and Network includes an ESP32 Wi-Fi/HTTPS adapter (host-tested/stubbed and compile-tested only). Radio/TLS/server behavior is not hardware-verified; OTA is not implemented. Start in `src/main.cpp`.
 
 ```text
 software/firmware/
@@ -33,7 +33,7 @@ software/firmware/
   lib/BardBoxMeasurements/           registration, publish checks, latest-reading cache
   lib/BardBoxBuffer/                 recording interval, records, durable FIFO queue and ACK
   lib/BardBoxSerial/                 serial commands and wire forms
-  lib/BardBoxNetwork/                delivery policy/mailbox and candidate JSON (fake transport only)
+  lib/BardBoxNetwork/                Wi-Fi/HTTPS, delivery policy/mailbox and candidate JSON
   test/host/                         host tests and demo (simulated)
 ```
 
@@ -92,3 +92,10 @@ to the tracked example.
 Use `hardware/ecad` for KiCad and `hardware/mcad` for mechanical/enclosure files.
 Keep separate firmware projects under `software/firmware/<project>`; a single
 project may use this directory directly.
+
+## Synthetic Wi-Fi demo
+
+[Publish 42 through the API](examples/wifi42/README.md) is an isolated test sketch
+and optional HTTPS receiver. `pio run -e feather_s3_wifi42_test` compiles it;
+no hardware operation is performed by that command. Runtime Wi-Fi credentials,
+HTTPS endpoint and trusted CA must be supplied in the ignored local config.

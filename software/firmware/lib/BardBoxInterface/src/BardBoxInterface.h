@@ -77,8 +77,8 @@ class BardBoxInterface : private bbcore::SerialDataSource {
   bool beginWithPort(Stream &port, const char *firmwareVersion, bool startServiceTask);
   // Storage for the Buffer; set before begin. ESP32 uses LittleFS by default.
   void useStorage(bbcore::StorageAdapter *storage) { storage_ = storage; }
-  // Delivery transport; set before begin. No device transport exists yet, so
-  // a configured device reports "no_transport" and delivers nothing.
+  // Optional injected delivery transport, set before begin. ESP32 otherwise
+  // selects its Wi-Fi/HTTPS adapter when the private configuration is valid.
   void useTransport(bbcore::Transport *transport) { transport_ = transport; }
   // Host tests and demos only: the Buffer, for inspection on the owner's task.
   bbcore::BardBoxBuffer &bufferForDelivery() { return buffer_; }

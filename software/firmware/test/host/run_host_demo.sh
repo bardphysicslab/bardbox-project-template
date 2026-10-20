@@ -24,3 +24,11 @@ echo "== durable recording across a simulated restart =="
 $CXX -std=c++11 -Wall -Wextra -Werror -DBARDBOX_BUFFER_CAPACITY_RECORDS=4 -I"$here" $inc $srcs \
   "$here/demo_restart.cpp" -o "$out/demo_restart"
 "$out/demo_restart"
+
+echo
+echo "== constant 42 through the actual sketch (SIMULATED delivery) =="
+$CXX -std=c++11 -Wall -Wextra -Werror -DBARDBOX_HOST_DEMO \
+  '-DFIRMWARE_VERSION="0.0.0-wifi42-host-demo"' -DBARDBOX_RECORDING_INTERVAL_S=5 \
+  '-DBARDBOX_NETWORK_ENDPOINT="https://receiver.invalid/demo/wifi42"' \
+  -I"$here" $inc $srcs "$fw/examples/wifi42/main.cpp" "$here/demo_wifi42.cpp" -o "$out/demo_wifi42"
+"$out/demo_wifi42"

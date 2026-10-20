@@ -25,3 +25,10 @@ non-2xx retention, exact-token acknowledgements, retry after failed removal,
 original attribution, and FIFO catch-up while recording and Serial continue.
 The emitted `bardbox-delivery-candidate` body is parsed as JSON, not accepted
 as a production protocol. Host time is simulated; task latency is not measured.
+
+Wi-Fi adapter tests additionally cover URL/header validation, partial writes,
+fragmented/bounded responses, failed DNS/TLS/write, cancellation and reconnect
+cooldown. The actual ESP32 provider is compiled against `host/wifi_stub/` APIs
+to check callback lifetime, original-host/CA configuration, positive 1 ms TLS
+polling and descriptor-set rearming. These are deterministic stubs, not a real
+handshake. The 42 sketch also runs in the host demo with simulated delivery.

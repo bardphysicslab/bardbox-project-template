@@ -30,6 +30,8 @@ class Transport {
  public:
   virtual ~Transport() {}
   virtual const char *name() const = 0;
+  // Optional bounded connection maintenance, including before any record exists.
+  virtual void service(uint32_t nowMs) { (void)nowMs; }
   // Begins one attempt. The transport must copy what it needs from body
   // before returning; the pointer is not valid afterwards.
   virtual bool start(uint32_t attemptId, const uint8_t *body, size_t len, uint32_t nowMs) = 0;
