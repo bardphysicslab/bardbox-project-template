@@ -59,3 +59,10 @@ server deduplication guarantee. Stop the receiver with Ctrl-C. Hardware flashing
 and board operation remain separate operator actions; no such action has been
 performed. Actual Wi-Fi, native TLS/SNI, clock/DNS, heap/stack and recovery still
 need a recorded on-board test before calling Wi-Fi ready.
+
+## Board profile
+
+All supported environments use the [project two-slot board recipe](../../boards/README.md),
+which excludes the stock TinyUF2 write inside app1. A successful build alone
+never established this upload compatibility. The resolved upload image plan is
+checked separately; browser USB-flasher bundle compatibility is still pending.

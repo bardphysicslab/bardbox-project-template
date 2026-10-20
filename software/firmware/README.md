@@ -23,6 +23,7 @@ and Network includes an ESP32 Wi-Fi/HTTPS adapter (host-tested/stubbed and compi
 ```text
 software/firmware/
   platformio.ini                     Feather ESP32-S3 (8 MiB, no PSRAM) environments
+  boards/                            project two-slot upload recipe (no TinyUF2)
   partitions_bardbox_8mb_ota.csv     OTA-ready 8 MiB layout (slots reserved; OTA not implemented)
   src/main.cpp                       student start file: version, sensors, read/publish/delay
   src/SimulatedBme280.h              SIMULATED driver for the M1 demo
