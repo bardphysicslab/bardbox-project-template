@@ -34,7 +34,11 @@ constexpr const char *kDir = "/bbq";
 constexpr const char *kTmp = "/bbq/r.tmp";
 constexpr const char *kMeta = "/bbq/meta";
 constexpr const char *kMetaTmp = "/bbq/meta.tmp";
-constexpr size_t kMetaBytes = 24;  // "BBM2" gen next evicted pendingVictim crc
+// Meta "BBM3": gen next evicted pendingVictim flags crc (28 bytes). "BBM2"
+// (24 bytes, no flags) is still read. Flag 1: loss history unknown.
+constexpr size_t kMetaBytes = 28;
+constexpr size_t kMetaV2Bytes = 24;
+constexpr uint32_t kFlagLossHistoryUnknown = 1;
 
 bool reached(uint32_t nowMs, uint32_t dueMs) {
   return static_cast<int32_t>(nowMs - dueMs) >= 0;  // wraparound-safe
@@ -96,18 +100,26 @@ void BardBoxBuffer::listEntry(const char *name, void *context) {
   if (kind == 'r' && seq > s->after) scanAdd(*s, seq);
 }
 
-static void copyText(char *dst, size_t cap, const char *src) {
-  strncpy(dst, src ? src : "", cap - 1);
-  dst[cap - 1] = '\0';
+static bool fits(const char *s, size_t cap, bool allowEmpty) {
+  if (!s) return false;
+  const size_t n = strlen(s);
+  return n < cap && (allowEmpty || n > 0);
 }
 
-void BardBoxBuffer::setAttribution(const char *uid, const char *firmware, const char *protocol) {
-  copyText(attribution_.uid, sizeof attribution_.uid, uid);
-  copyText(attribution_.firmware, sizeof attribution_.firmware, firmware);
-  copyText(attribution_.protocol, sizeof attribution_.protocol, protocol);
+bool BardBoxBuffer::setAttribution(const char *uid, const char *firmware, const char *protocol) {
+  if (started_ || !fits(uid, sizeof attribution_.uid, false) ||
+      !fits(firmware, sizeof attribution_.firmware, false) ||
+      !fits(protocol, sizeof attribution_.protocol, true))
+    return false;  // never truncated: unsupported values are rejected
+  strcpy(attribution_.uid, uid);
+  strcpy(attribution_.firmware, firmware);
+  strcpy(attribution_.protocol, protocol);
+  attributionSet_ = true;
+  return true;
 }
 
-void BardBoxBuffer::begin(uint32_t nowMs, uint32_t bootId, StorageAdapter *storage, uint32_t generationSeed) {
+bool BardBoxBuffer::begin(uint32_t nowMs, uint32_t bootId, StorageAdapter *storage, uint32_t generationSeed) {
+  if (started_ || !attributionSet_) return false;
   bootId_ = bootId;
   nextDueMs_ = nowMs + recordingIntervalMs();
   storage_ = storage;
@@ -120,16 +132,18 @@ void BardBoxBuffer::begin(uint32_t nowMs, uint32_t bootId, StorageAdapter *stora
     if (!durable_) status_.storage = "unavailable";  // never formatted
   }
   started_ = true;
+  return true;
 }
 
 bool BardBoxBuffer::writeMeta() {
   uint8_t meta[kMetaBytes];
-  memcpy(meta, "BBM2", 4);
+  memcpy(meta, "BBM3", 4);
   put32(meta + 4, generation_);
   put32(meta + 8, nextSeq_);
   put32(meta + 12, status_.evicted);
   put32(meta + 16, pendingVictim_);
-  put32(meta + 20, crc32(meta, 20));
+  put32(meta + 20, status_.lossHistoryKnown ? 0 : kFlagLossHistoryUnknown);
+  put32(meta + 24, crc32(meta, 24));
   return storage_->writeFile(kMetaTmp, meta, sizeof meta) && storage_->rename(kMetaTmp, kMeta);
 }
 
@@ -141,13 +155,22 @@ bool BardBoxBuffer::recover() {
   size_t len = 0;
   uint32_t metaNext = 1;
   const bool metaPresent = storage_->exists(kMeta);
-  bool metaValid = storage_->readFile(kMeta, meta, sizeof meta, len) && len == kMetaBytes &&
-                   memcmp(meta, "BBM2", 4) == 0 && crc32(meta, 20) == get32(meta + 20);
+  bool metaValid = false;
+  uint32_t flags = 0;
+  if (storage_->readFile(kMeta, meta, sizeof meta, len)) {
+    if (len == kMetaBytes && memcmp(meta, "BBM3", 4) == 0 && crc32(meta, 24) == get32(meta + 24)) {
+      metaValid = true;
+      flags = get32(meta + 20);
+    } else if (len == kMetaV2Bytes && memcmp(meta, "BBM2", 4) == 0 && crc32(meta, 20) == get32(meta + 20)) {
+      metaValid = true;
+    }
+  }
   if (metaValid) {
     generation_ = get32(meta + 4);
     metaNext = get32(meta + 8);
     status_.evicted = get32(meta + 12);
     pendingVictim_ = get32(meta + 16);
+    status_.lossHistoryKnown = (flags & kFlagLossHistoryUnknown) == 0;
     metaValid = generation_ != 0;
   }
   if (!metaValid) {
@@ -156,6 +179,7 @@ bool BardBoxBuffer::recover() {
     // records, is reported (the previous eviction count is unknown); a missing
     // meta in an empty queue is indistinguishable from first use.
     status_.metaRebuilt = metaPresent ? 1 : 0;
+    status_.lossHistoryKnown = false;  // earlier evictions, if any, are unknown
     generation_ = generationSeed_;
     metaNext = 1;
     status_.evicted = 0;
@@ -178,8 +202,10 @@ bool BardBoxBuffer::recover() {
   if (!metaValid && !metaPresent && scan.maxSeq > 0) status_.metaRebuilt = 1;
 
   // 4. Next sequence: never below meta, never at or below any existing file.
-  if (scan.maxSeq == 0xFFFFFFFFUL) {
-    nextSeq_ = 0;  // exhausted in this generation
+  // A valid meta with next 0 means this generation is exhausted: that stays
+  // exhausted (it is never turned back into sequence 1).
+  if (scan.maxSeq == 0xFFFFFFFFUL || (metaValid && metaNext == 0)) {
+    nextSeq_ = 0;
   } else {
     nextSeq_ = metaNext > scan.maxSeq ? metaNext : scan.maxSeq + 1;
   }

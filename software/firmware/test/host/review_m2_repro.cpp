@@ -26,6 +26,11 @@ struct Src : bbcore::SnapshotSource {
   void describeChannels(bbcore::ChannelSchema *out) override { out[0] = bbcore::ChannelSchema(); }
 };
 
+static BardBoxBuffer &attributed(BardBoxBuffer &b) {
+  b.setAttribution("bb-tst-air-001", "1.0.0", "v2-candidate");
+  return b;
+}
+
 static void one(BardBoxBuffer &b, Src &s, uint32_t &t, double v) {
   t += BardBoxBuffer::recordingIntervalMs();
   s.now = t;
@@ -36,9 +41,9 @@ static void one(BardBoxBuffer &b, Src &s, uint32_t &t, double v) {
 int main() {
   {
     FakeStorage fs; Src src; uint32_t t = 0; QueueToken old;
-    { BardBoxBuffer b; b.begin(t, 1, &fs, 101); one(b, src, t, 1); Record r; b.peekOldest(r, old); b.acknowledge(old); }
+    { BardBoxBuffer b; attributed(b).begin(t, 1, &fs, 101); one(b, src, t, 1); Record r; b.peekOldest(r, old); b.acknowledge(old); }
     fs.files.erase("/bbq/meta");
-    BardBoxBuffer b; b.begin(t, 2, &fs, 202); one(b, src, t, 2);
+    BardBoxBuffer b; attributed(b).begin(t, 2, &fs, 202); one(b, src, t, 2);
     Record r; QueueToken now; b.peekOldest(r, now);
     const int ack = (int)b.acknowledge(old);
     printf("lost meta after drain: old_token=%lu/%lu new_token=%lu/%lu stale_ack_result=%d(%s) remaining=%lu\n",
@@ -53,7 +58,7 @@ int main() {
       const size_t n = bbcore::encodeRecordFrame(r, frame, sizeof frame);
       char p[30]; snprintf(p, sizeof p, "/bbq/r%010u", i); fs.writeFile(p, frame, n);
     }
-    BardBoxBuffer b; b.begin(0, 1, &fs, 303);
+    BardBoxBuffer b; attributed(b).begin(0, 1, &fs, 303);
     printf("capacity reduction at start: stored=%lu hidden=%lu queue=%s\n", (unsigned long)b.status().stored,
            (unsigned long)b.status().hidden, bbcore::queueStateName(b.status().state));
     Record r; QueueToken tok; unsigned delivered = 0;
@@ -64,12 +69,12 @@ int main() {
   }
   {
     FakeStorage fs; Src src; uint32_t t = 0;
-    { BardBoxBuffer b; b.begin(0, 1, &fs, 404); for (int i = 0; i < 4; i++) one(b, src, t, i);
+    { BardBoxBuffer b; attributed(b).begin(0, 1, &fs, 404); for (int i = 0; i < 4; i++) one(b, src, t, i);
       fs.failWriteAt = 4;  // the record write after the eviction
       one(b, src, t, 4);
       printf("eviction then failed append: evicted=%lu pending_ram=%lu\n", (unsigned long)b.status().evicted,
              (unsigned long)b.status().pendingRam); }
-    BardBoxBuffer b; b.begin(t, 2, &fs, 505);
+    BardBoxBuffer b; attributed(b).begin(t, 2, &fs, 505);
     printf("after restart: evicted=%lu victim2_exists=%d\n", (unsigned long)b.status().evicted,
            (int)fs.exists("/bbq/r0000000002"));
   }

@@ -43,6 +43,7 @@ struct BufferStatus {
   uint32_t quarantined = 0;      // unreadable records moved aside (rename succeeded)
   uint32_t unreadable = 0;       // unreadable records that could not be moved aside
   uint32_t metaRebuilt = 0;      // meta was missing or corrupt: new generation started
+  bool lossHistoryKnown = true;  // false: evicted counts only since meta was lost
   uint32_t skippedBoundaries = 0;
 };
 
@@ -57,11 +58,15 @@ class BardBoxBuffer {
  public:
   enum class AckResult : uint8_t { Removed, StaleToken, Empty, StorageError };
 
-  // Attribution stamped on every new record; set before begin.
-  void setAttribution(const char *uid, const char *firmware, const char *protocol);
+  // Attribution stamped on every new record. Required before begin. Returns
+  // false (and keeps nothing) for an empty UID or firmware, or a value longer
+  // than the stored field (UID and firmware 32, protocol 16 characters):
+  // values are never truncated.
+  bool setAttribution(const char *uid, const char *firmware, const char *protocol);
   // storage may be null (RAM only). generationSeed should be random per boot
-  // (it seeds a new queue generation when meta must be rebuilt).
-  void begin(uint32_t nowMs, uint32_t bootId, StorageAdapter *storage, uint32_t generationSeed);
+  // (it seeds a new queue generation when meta must be rebuilt). Returns false,
+  // recording nothing, if no valid attribution was set.
+  bool begin(uint32_t nowMs, uint32_t bootId, StorageAdapter *storage, uint32_t generationSeed);
   bool started() const { return started_; }
 
   static constexpr uint32_t recordingIntervalMs() {
@@ -103,6 +108,7 @@ class BardBoxBuffer {
   uint32_t nextDueMs_ = 0;
   uint32_t recordSeq_ = 0;
   RecordAttribution attribution_;
+  bool attributionSet_ = false;
 
   // Persisted in meta.
   uint32_t generation_ = 0;

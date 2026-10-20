@@ -99,16 +99,25 @@ static void writeRecordFile(FakeStorage &fs, uint32_t generation, uint32_t seq, 
   fs.files[p].assign(frame, frame + n);
 }
 
-static void writeMeta(FakeStorage &fs, uint32_t gen, uint32_t next, uint32_t evicted, uint32_t pending) {
-  uint8_t m[24];
-  memcpy(m, "BBM2", 4);
-  const uint32_t v[4] = {gen, next, evicted, pending};
-  for (int k = 0; k < 4; ++k)
+// Writes meta directly: "BBM3" (with flags) by default, or the older "BBM2".
+static void writeMeta(FakeStorage &fs, uint32_t gen, uint32_t next, uint32_t evicted, uint32_t pending,
+                      uint32_t flags = 0, bool v2 = false) {
+  uint8_t m[28];
+  memcpy(m, v2 ? "BBM2" : "BBM3", 4);
+  const uint32_t v[5] = {gen, next, evicted, pending, flags};
+  const int fields = v2 ? 4 : 5;
+  for (int k = 0; k < fields; ++k)
     for (int i = 0; i < 4; ++i) m[4 + 4 * k + i] = (v[k] >> (8 * i)) & 0xFF;
-  const uint32_t crc = bbcore::crc32(m, 20);
-  for (int i = 0; i < 4; ++i) m[20 + i] = (crc >> (8 * i)) & 0xFF;
+  const size_t body = 4 + 4 * fields;
+  const uint32_t crc = bbcore::crc32(m, body);
+  for (int i = 0; i < 4; ++i) m[body + i] = (crc >> (8 * i)) & 0xFF;
   fs.dirs.insert("/bbq");
-  fs.files["/bbq/meta"].assign(m, m + 24);
+  fs.files["/bbq/meta"].assign(m, m + body + 4);
+}
+
+static uint32_t metaNextSeq(FakeStorage &fs) {
+  const std::vector<uint8_t> &m = fs.files["/bbq/meta"];
+  return m[8] | (m[9] << 8) | (m[10] << 16) | ((uint32_t)m[11] << 24);
 }
 
 static void test_restart_preserves_order_and_exact_ack() {
@@ -429,6 +438,125 @@ static void test_frame_is_separate_and_checked() {
   CHECK(bbcore::decodeRecordFrame(frame, len - 1, back) == bbcore::DecodeResult::BadFrame);
 }
 
+
+// Re-review repro: a valid exhausted meta (next 0) must stay exhausted.
+static void test_exhausted_meta_survives_restart() {
+  {  // empty queue: roll to a new generation, never back to sequence 1 of 77
+    FakeStorage fs;
+    writeMeta(fs, 77, 0, 0, 0, 0, true);  // the older BBM2 format is still read
+    ScriptedSource src;
+    uint32_t t = 0;
+    BardBoxBuffer b;
+    begin(b, fs, t, 1);
+    recordOne(b, src, t, 10);
+    double v;
+    QueueToken tok;
+    CHECK(oldest(b, v, tok) && v == 10 && tok.generation == 78 && tok.seq == 1);
+    QueueToken historical;
+    historical.generation = 77;
+    historical.seq = 1;
+    CHECK(b.acknowledge(historical) == Ack::StaleToken && b.status().stored == 1);
+  }
+  {  // low-sequence backlog: block, deliver the backlog, then roll
+    FakeStorage fs;
+    writeRecordFile(fs, 77, 1, 1);
+    writeRecordFile(fs, 77, 2, 2);
+    writeMeta(fs, 77, 0, 0, 0);
+    ScriptedSource src;
+    uint32_t t = 0;
+    {
+      BardBoxBuffer b;
+      begin(b, fs, t, 1);
+      CHECK(b.status().state == QueueState::SequenceExhausted && b.status().stored == 2);
+      recordOne(b, src, t, 3);
+      CHECK(b.status().pendingRam == 1 && b.status().stored == 2);
+    }
+    BardBoxBuffer b;  // restart while still exhausted: still blocked
+    begin(b, fs, t, 2);
+    CHECK(b.status().state == QueueState::SequenceExhausted);
+    std::vector<double> got;
+    drain(b, got);
+    CHECK((got == std::vector<double>{1, 2}));
+    recordOne(b, src, t, 4);  // empty now: generation 78 starts
+    double v;
+    QueueToken tok;
+    CHECK(oldest(b, v, tok) && v == 4 && tok.generation == 78 && tok.seq == 1);
+  }
+}
+
+static void test_repeated_rollovers_across_restarts_keep_order() {
+  FakeStorage fs;
+  writeMeta(fs, 77, 0xFFFFFFFFu, 0, 0);
+  ScriptedSource src;
+  uint32_t t = 0;
+  std::vector<double> got;
+  for (uint32_t round = 0; round < 2; ++round) {
+    {
+      BardBoxBuffer b;
+      begin(b, fs, t, 10 + round);
+      recordOne(b, src, t, 100 + round);  // last sequence of this generation
+      recordOne(b, src, t, 200 + round);  // exhausted with a backlog: held in RAM
+      CHECK(b.status().state == QueueState::SequenceExhausted);
+      CHECK(metaNextSeq(fs) == 0);
+    }  // restart; the RAM-held record is lost with the boot (counted as such)
+    BardBoxBuffer b;
+    begin(b, fs, t, 20 + round);
+    CHECK(b.status().state == QueueState::SequenceExhausted && b.status().generation == 77 + round);
+    drain(b, got);
+    recordOne(b, src, t, 300 + round);  // empty: roll to the next generation
+    double v;
+    QueueToken tok;
+    CHECK(oldest(b, v, tok) && tok.generation == 78 + round && tok.seq == 1);
+    drain(b, got);
+    // Push the new generation to its last sequence for the next round.
+    writeMeta(fs, 78 + round, 0xFFFFFFFFu, b.status().evicted, 0);
+  }
+  CHECK((got == std::vector<double>{100, 300, 101, 301}));  // FIFO within and across generations
+}
+
+static void test_attribution_is_validated_never_truncated() {
+  const std::string u32(32, 'u'), u33(33, 'u'), p16(16, 'p'), p17(17, 'p');
+  BardBoxBuffer a;
+  CHECK(a.setAttribution(u32.c_str(), u32.c_str(), p16.c_str()));  // longest supported
+  BardBoxBuffer b1, b2, b3, b4, b5;
+  CHECK(!b1.setAttribution(u33.c_str(), "1.0.0", "v2"));
+  CHECK(!b2.setAttribution("bb-tst-air-001", u33.c_str(), "v2"));
+  CHECK(!b3.setAttribution("bb-tst-air-001", "1.0.0", p17.c_str()));
+  CHECK(!b4.setAttribution("", "1.0.0", "v2"));
+  CHECK(!b5.setAttribution("bb-tst-air-001", "", "v2"));
+  FakeStorage fs;
+  ScriptedSource src;
+  CHECK(!b1.begin(0, 1, &fs, 5));  // no valid attribution: nothing starts or records
+  src.nowMs = BardBoxBuffer::recordingIntervalMs();
+  CHECK(!b1.service(src.nowMs, src) && fs.files.empty());
+  CHECK(a.begin(0, 1, &fs, 5));
+  CHECK(!a.setAttribution("bb-other-uid-01", "1.0.0", "v2"));  // fixed once started
+  CHECK(a.service(src.nowMs, src));
+  Record r;
+  QueueToken tok;
+  CHECK(a.peekOldest(r, tok) && std::string(r.attribution.uid) == u32 && std::string(r.attribution.protocol) == p16);
+}
+
+static void test_loss_history_unknown_after_meta_loss_persists() {
+  FakeStorage fs;
+  writeRecordFile(fs, 9, 1, 1);  // records but no meta: history unknown
+  ScriptedSource src;
+  uint32_t t = 0;
+  {
+    BardBoxBuffer b;
+    begin(b, fs, t, 1);
+    CHECK(!b.status().lossHistoryKnown && b.status().metaRebuilt == 1 && b.status().evicted == 0);
+  }
+  BardBoxBuffer b;
+  begin(b, fs, t, 2);
+  CHECK(!b.status().lossHistoryKnown && b.status().metaRebuilt == 0);  // still unknown, not proven zero
+  FakeStorage clean;
+  writeMeta(clean, 5, 1, 3, 0);
+  BardBoxBuffer c;
+  begin(c, clean, 0, 3);
+  CHECK(c.status().lossHistoryKnown && c.status().evicted == 3);
+}
+
 int main() {
   test_restart_preserves_order_and_exact_ack();
   test_lost_or_corrupt_meta_after_drain_never_reuses_token();
@@ -442,6 +570,10 @@ int main() {
   test_recovery_interrupted_corrupt_and_failed_quarantine();
   test_saturation_keeps_anchor();
   test_frame_is_separate_and_checked();
+  test_exhausted_meta_survives_restart();
+  test_repeated_rollovers_across_restarts_keep_order();
+  test_attribution_is_validated_never_truncated();
+  test_loss_history_unknown_after_meta_loss_persists();
   if (failures) {
     fprintf(stderr, "%d check(s) failed\n", failures);
     return 1;

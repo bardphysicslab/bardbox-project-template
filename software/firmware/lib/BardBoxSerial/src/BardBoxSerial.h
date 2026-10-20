@@ -50,6 +50,7 @@ struct SerialStatus {
   uint32_t hidden = 0;
   uint32_t unreadable = 0;
   uint32_t metaRebuilt = 0;
+  bool lossHistoryKnown = true;
   const char *network = "";
   uint8_t registrationErrors = 0;
 };

@@ -182,6 +182,7 @@ void BardBoxSerial::writeInfo(SerialLine &line) {
   line.text(" skipped=").uint(st.skippedBoundaries).text(" queue=").text(st.queueState);
   line.text(" hidden=").uint(st.hidden).text(" unreadable=").uint(st.unreadable);
   line.text(" meta_rebuilt=").uint(st.metaRebuilt);
+  line.text(st.lossHistoryKnown ? " loss_history=known" : " loss_history=unknown");
   line.text(" net=").text(st.network).text(" acquired_time=unknown reg_errors=").uint(st.registrationErrors);
   line.end();
 }

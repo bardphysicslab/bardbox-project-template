@@ -76,11 +76,11 @@ bool BardBoxInterface::beginWithPort(Stream &port, const char *firmwareVersion, 
 #else
   bootId_ = hostBootId_;  // fixed on hosts so tests are deterministic
 #endif
-  buffer_.setAttribution(BARDBOX_DEVICE_UID, firmwareVersion, bbcore::kWireProtocol);
+  if (!buffer_.setAttribution(BARDBOX_DEVICE_UID, firmwareVersion, bbcore::kWireProtocol)) return false;
 #if defined(BARDBOX_INTERFACE_RTOS)
-  buffer_.begin(millis(), bootId_, storage_, esp_random());
+  if (!buffer_.begin(millis(), bootId_, storage_, esp_random())) return false;
 #else
-  buffer_.begin(millis(), bootId_, storage_, bootId_);
+  if (!buffer_.begin(millis(), bootId_, storage_, bootId_)) return false;
 #endif
   network_.begin();
   serial_.begin(port, *this);
@@ -123,6 +123,7 @@ void BardBoxInterface::status(bbcore::SerialStatus &out) {
   out.hidden = b.hidden;
   out.unreadable = b.unreadable;
   out.metaRebuilt = b.metaRebuilt;
+  out.lossHistoryKnown = b.lossHistoryKnown;
   out.network = network_.statusName();
   out.registrationErrors = measurements_.registrationErrors();
 }
