@@ -1,14 +1,18 @@
 # test/
 
-Proposed home for this project's host and integration tests (PlatformIO
-`test/`), covering the facade, Serial, network and Buffer owners together with
-a sensorless or simulated consumer. Per-library tests may live in
-`lib/<Library>/` when needed.
+Host tests and a host demo for the BardBox modules. They use the system C++
+compiler and a minimal Arduino stub in `host/stub/`; values are simulated and
+none of this is board or sensor evidence.
 
-No tests exist yet and none run in CI. Acceptance targets are listed in the
-[serial/base API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-base-and-serial-api.md#acceptance-and-implementation-status)
-and [Buffer API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-buffer-api.md).
+From `software/firmware/`:
 
-Status: role README only, added by the [FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824) scaffold (October
-20, 2026). This folder contains no code; the target contract is not
-implemented and its names are proposals maintained in `bardbox/docs`.
+```bash
+test/host/run_host_tests.sh   # module checks plus the FIRMWARE_VERSION build guard
+test/host/run_host_demo.sh    # runs the unmodified src/main.cpp with simulated time
+```
+
+The host build never reads the private `include/config.h`, so module defaults
+apply. `tests/test_firmware_host.py` runs the host tests under pytest when a
+C++ compiler is available.
+
+Status: **M1 progress** ([#36](https://github.com/bardphysicslab/bardbox-project-template/issues/36)): implemented and host-tested with simulated values; built for the Feather ESP32-S3 but not run on hardware. Names, wire forms and behaviors marked candidate are pending review.

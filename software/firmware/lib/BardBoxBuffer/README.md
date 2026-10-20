@@ -1,21 +1,16 @@
 # BardBoxBuffer
 
-Proposed durable record queue behind `BardBoxInterface`. Recording defaults on.
+Recording interval, record creation and admission.
 
 | Contract | Overview |
 | --- | --- |
-| Responsibility | Admit completed records, keep them durably and oldest-first until acknowledged |
-| Inputs | Completed records from the facade; `acknowledge(token)` from the network owner |
-| Outputs | Admission ticket or rejection; proposed states `pending`, `durable`, `uncertain`, `failed`; oldest record copy; status and loss counters |
-| State | Stored records, queue metadata, saturation anchor, bounded pending operations |
-| Side effects | Storage writes through a platform adapter |
-| Failures | Rejection before any write (full, invalid size, exhausted sequence); `uncertain` when a write or metadata step fails after bytes may be written; at saturation the oldest unprotected record is evicted and counted as data loss, never as acknowledgement |
-| Dependencies | Platform storage adapter; CESH `appendReadingToBuffer` is the modeling reference, not shared code |
-| Compatibility | Storage format versioned; old records stay readable across firmware updates. Physical power-loss durability is unverified |
-| Status | Current scaffold: this README only, no code. Target: unimplemented proposal |
+| Responsibility | Owns the recording interval and its boundaries; at each due boundary takes one snapshot from a `SnapshotSource`, creates one full-node record and admits it; keeps the latest completed record |
+| Interface | `begin(nowMs, bootId)`, `service(nowMs, source)` (at most one record per step), `latest(record)`, `buffered()`, `backpressureCount()`, `skippedBoundaries()`, `recordingIntervalMs()` |
+| Configuration | `BARDBOX_RECORDING_INTERVAL_S` (seconds, default 60, valid 5..86400): record creation and admission only, not sampling or network catch-up. The default is an implementation choice. `BARDBOX_BUFFER_RAM_RECORDS` (default 8, 1..64) |
+| Behavior | Boundaries are monotonic (previous due time plus the interval); a late step records once and counts the missed boundaries. The latest completed record is set when the record is created, before admission. A full queue gives counted backpressure. A channel whose sensor never published is recorded as `no_sample`. A channel with the same hand-off as the previous record is marked as a repeated hand-off (not yet on the wire) |
+| Not in M1 | **Persistent storage**: M1 keeps records in RAM only, lost on restart. No FIFO acknowledgement, saturation anchor, restart recovery or freshness judgement |
+| Dependencies | None (defines the shared record schema and the `SnapshotSource` interface) |
 
-Authoritative contracts: [Buffer API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-buffer-api.md), [compact record storage](https://github.com/bardphysicslab/bardbox/blob/main/docs/compact-record-storage.md) (draft).
+Shared contract: [serial/base API](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-base-and-serial-api.md).
 
-Status: role README only, added by the [FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824) scaffold (October
-20, 2026). This folder contains no code; the target contract is not
-implemented and its names are proposals maintained in `bardbox/docs`.
+Status: **M1 progress** ([#36](https://github.com/bardphysicslab/bardbox-project-template/issues/36)): implemented and host-tested with simulated values; built for the Feather ESP32-S3 but not run on hardware. Names, wire forms and behaviors marked candidate are pending review.

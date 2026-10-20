@@ -1,21 +1,17 @@
 # BardBoxSerial
 
-Proposed serial owner behind `BardBoxInterface`.
+Serial command handling and every serial wire form.
 
 | Contract | Overview |
 | --- | --- |
-| Responsibility | Bounded command parsing and response framing; optional streaming |
-| Inputs | Bytes from an injected USB CDC/UART transport; the facade's latest snapshot, schema and metadata |
-| Outputs | `INFO`, `HEADER`, `READ` (`DAT` or `ERR`), `PING`/`PONG` and adopted extensions |
-| State | Bounded input line; streaming on/off |
-| Side effects | Writes to the serial transport only. Never drains or acknowledges recorded records |
-| Failures | `ERR` results (for example `SENSOR_FAIL`, unknown command); oversized lines discarded through the delimiter |
-| Dependencies | Transport and facade only; no network or Buffer calls |
-| Compatibility | Published device-instruction forms stay unchanged; any per-channel or metadata serial form needs a versioned contract. Serial historical recovery is an open contract |
-| Status | Current scaffold: this README only, no code. Target: unimplemented proposal |
+| Responsibility | Bounded line input (64 bytes; longer lines discarded through the newline), case-insensitive command recognition, `PING`/`PONG`, `ERR UNKNOWN_CMD`, and formatting of `INFO`, `HEADER`, `READ` and `READ_LIVE` |
+| Interface | `begin(Stream&, SerialDataSource&)`, `beginPort(port, source)` (starts the port at the configured baud), `service(maxCommands)`: one bounded step |
+| Inputs | Bytes from the port; content through `SerialDataSource` (status, sensor and channel names, latest record, live cache snapshot) |
+| Wire | `INFO` keeps `OK INFO uid= fw= sensors=` and adds fields. `HEADER`/`READ`/`READ_LIVE` use a **v2 candidate** framing pending review: `HDR,v2,record,boot,captured_ms,<sensor.measurement>...`; `DAT,v2,<record>,<boot>,<captured_ms>,<value or !code>...`; `LIVE,v2,<boot>,<now_ms>\|<sensor>,publish=<n or none>,handoff_age_ms=<n>,acquired=unknown,<measurement>=<value or !code>...`. Legacy `v1` parsers see `v2` and must not reinterpret it |
+| Configuration | `BARDBOX_SERIAL_BAUD` (bit/s, default 115200, validated 1200..2000000 at build time) |
+| Side effects | Writes to the serial port only; never drains or acknowledges records |
+| Dependencies | Arduino `Stream`; the record types in `BardBoxBuffer`. No network or storage calls |
 
-Authoritative contracts: [Device instructions](https://github.com/bardphysicslab/bardbox/blob/main/docs/device-instructions.md) (published), [serial/base API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-base-and-serial-api.md).
+Shared contract: [serial/base API](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-base-and-serial-api.md).
 
-Status: role README only, added by the [FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824) scaffold (October
-20, 2026). This folder contains no code; the target contract is not
-implemented and its names are proposals maintained in `bardbox/docs`.
+Status: **M1 progress** ([#36](https://github.com/bardphysicslab/bardbox-project-template/issues/36)): implemented and host-tested with simulated values; built for the Feather ESP32-S3 but not run on hardware. Names, wire forms and behaviors marked candidate are pending review.

@@ -1,65 +1,31 @@
+// Student: enter your application firmware version here, for example "1.0.0".
+// (A test build environment may supply one; see platformio.ini.)
+#ifndef FIRMWARE_VERSION
+#define FIRMWARE_VERSION ""
+#endif
+
 #include <Arduino.h>
+#include <BardBoxInterface.h>
 
-static const char *DEVICE_UID = "bb-prj-air-001";
-static const char *FW_VERSION = "1.0.0";
+#include "SimulatedBme280.h"
 
-static float readTemperatureC() {
-  return 21.5f;
-}
-
-static float readRelativeHumidityPct() {
-  return 43.0f;
-}
-
-static long readPressurePa() {
-  return 100980L;
-}
-
-static void sendInfo() {
-  Serial.print("OK INFO uid=");
-  Serial.print(DEVICE_UID);
-  Serial.print(" fw=");
-  Serial.print(FW_VERSION);
-  Serial.println(" sensors=EXAMPLE");
-}
-
-static void sendHeader() {
-  Serial.println("HDR,v1,temp_c,rh_pct,press_pa");
-}
-
-static void sendReading() {
-  Serial.print("DAT,");
-  Serial.print(readTemperatureC(), 2);
-  Serial.print(",");
-  Serial.print(readRelativeHumidityPct(), 2);
-  Serial.print(",");
-  Serial.println(readPressurePa());
-}
-
-static void handleCommand(String command) {
-  command.trim();
-  command.toUpperCase();
-
-  if (command == "INFO") {
-    sendInfo();
-  } else if (command == "HEADER") {
-    sendHeader();
-  } else if (command == "READ") {
-    sendReading();
-  } else if (command == "PING") {
-    Serial.println("PONG");
-  } else {
-    Serial.println("ERR UNKNOWN_CMD");
-  }
-}
+BardBoxInterface bardbox;   // the one BardBox device
+BardBoxSensor bme280;       // logical sensor handle
+SimulatedBme280 bmeDriver;  // SIMULATED driver: replace with the real BME280 driver
 
 void setup() {
-  Serial.begin(115200);
+  bme280 = bardbox.addSensor("bme280");
+  bme280.addMeasurement("humidity", "%");  // FLOAT (type omitted)
+  bme280.addMeasurement("temperature", "degC");
+  bme280.addMeasurement("pressure", "Pa");
+  bmeDriver.begin();  // hardware initialization stays application code
+  bardbox.begin();    // no arguments; starts BardBox's internal service
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    String command = Serial.readStringUntil('\n');
-    handleCommand(command);
-  }
+  float humidity = bmeDriver.readHumidity();  // values acquired by the application
+  float temperature = bmeDriver.readTemperature();
+  float pressure = bmeDriver.readPressure();
+  bme280.publish(humidity, temperature, pressure);  // declared order
+  delay(500);  // BardBox keeps serving Serial and recording meanwhile
 }

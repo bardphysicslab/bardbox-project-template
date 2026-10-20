@@ -1,0 +1,195 @@
+// Host tests for BardBox M1 (SIMULATED values; no hardware evidence).
+#define FIRMWARE_VERSION "0.0.0-host-test"
+#include <BardBoxInterface.h>
+
+#include <stdio.h>
+
+#include <string>
+
+uint32_t g_host_millis = 0;
+
+static int failures = 0;
+#define CHECK(cond)                                                     \
+  do {                                                                  \
+    if (!(cond)) {                                                      \
+      ++failures;                                                       \
+      fprintf(stderr, "%s:%d: CHECK failed: %s\n", __FILE__, __LINE__, #cond); \
+    }                                                                   \
+  } while (0)
+#define CHECK_EQ_STR(a, b)                                              \
+  do {                                                                  \
+    std::string _a = (a), _b = (b);                                     \
+    if (_a != _b) {                                                     \
+      ++failures;                                                       \
+      fprintf(stderr, "%s:%d: expected\n  %s\ngot\n  %s\n", __FILE__, __LINE__, _b.c_str(), _a.c_str()); \
+    }                                                                   \
+  } while (0)
+
+// Sends one command and returns the reply line without its newline.
+static std::string ask(BardBoxInterface &box, HostStream &io, const char *cmd) {
+  io.output.clear();
+  io.input.append(cmd).append("\n");
+  box.runServiceStep();
+  std::string out = io.output;
+  if (!out.empty() && out.back() == '\n') out.pop_back();
+  return out;
+}
+
+static void advance(BardBoxInterface &box, uint32_t toMs) {
+  g_host_millis = toMs;
+  box.runServiceStep();
+}
+
+struct Fixture {
+  BardBoxInterface box;
+  HostStream io;
+  BardBoxSensor bme;
+  Fixture() {
+    g_host_millis = 1000;
+    bme = box.addSensor("bme280");
+    bme.addMeasurement("humidity", "%");
+    bme.addMeasurement("temperature", "degC");
+    bme.addMeasurement("pressure", "Pa");
+    CHECK(box.beginWithPort(io, FIRMWARE_VERSION, false));
+  }
+};
+
+static void test_registration() {
+  BardBoxInterface box;
+  HostStream io;
+  BardBoxSensor a = box.addSensor("bme280");
+  CHECK(a.valid());
+  CHECK(!box.addSensor("bme280").valid());   // duplicate sensor
+  CHECK(!box.addSensor("Bad Name").valid()); // invalid name
+  CHECK(a.addMeasurement("humidity", "%"));
+  CHECK(!a.addMeasurement("humidity", "%")); // duplicate measurement
+  CHECK(a.addMeasurement("count", "1", MeasurementType::Integer));
+  CHECK(a.addMeasurement("door", "", MeasurementType::Boolean));
+  CHECK(box.registrationErrors() == 3);
+  CHECK(!box.beginWithPort(io, FIRMWARE_VERSION, false));  // begins, reports errors
+  CHECK(!box.addSensor("late").valid());                   // closed after begin
+  CHECK(!BardBoxSensor().publish(1.0f).accepted);           // invalid handle
+}
+
+static void test_publish_checks() {
+  Fixture f;
+  PublishResult r = f.bme.publish(43.0f, 21.5f);  // wrong count
+  CHECK(!r.accepted);
+  CHECK_EQ_STR(r.reason, "wrong_count");
+  CHECK_EQ_STR(ask(f.box, f.io, "READ_LIVE"), "LIVE,v2,5eed0001,1000|bme280,publish=none");
+
+  r = f.bme.publish(43.0f, 21.5f, NAN);  // one non-finite channel
+  CHECK(r.accepted && r.faultyChannels == 1);
+  g_host_millis = 1250;
+  CHECK_EQ_STR(ask(f.box, f.io, "READ_LIVE"),
+               "LIVE,v2,5eed0001,1250|bme280,publish=1,handoff_age_ms=250,acquired=unknown,"
+               "humidity=43,temperature=21.5,pressure=!non_finite");
+
+  r = f.bme.publish(43, true, 100980.5);  // int->FLOAT ok; bool->FLOAT invalid
+  CHECK(r.accepted && r.faultyChannels == 1);
+  CHECK_EQ_STR(ask(f.box, f.io, "READ_LIVE"),
+               "LIVE,v2,5eed0001,1250|bme280,publish=2,handoff_age_ms=0,acquired=unknown,"
+               "humidity=43,temperature=!invalid_type,pressure=100980");
+}
+
+static void test_types() {
+  using bbcore::ChannelStatus;
+  CHECK(bbcore::convertValue(MeasurementType::Integer, bbcore::ValueArg(43.7f)).status ==
+        ChannelStatus::InvalidType);  // never truncated
+  CHECK(bbcore::convertValue(MeasurementType::Integer, bbcore::ValueArg(43)).i == 43);
+  CHECK(bbcore::convertValue(MeasurementType::Integer, bbcore::ValueArg(UINT64_MAX)).status ==
+        ChannelStatus::NotRepresentable);
+  CHECK(bbcore::convertValue(MeasurementType::Boolean, bbcore::ValueArg(1)).status ==
+        ChannelStatus::InvalidType);
+  CHECK(bbcore::convertValue(MeasurementType::Boolean, bbcore::ValueArg(true)).b);
+  CHECK(bbcore::convertValue(MeasurementType::Float, bbcore::ValueArg(INFINITY)).status ==
+        ChannelStatus::NonFinite);
+}
+
+static void test_records_vs_live() {
+  Fixture f;
+  CHECK_EQ_STR(ask(f.box, f.io, "HEADER"),
+               "HDR,v2,record,boot,captured_ms,bme280.humidity,bme280.temperature,bme280.pressure");
+  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "ERR SAMPLE_NOT_READY");
+
+  g_host_millis = 30000;
+  f.bme.publish(43.0f, 21.5f, 100980.0f);
+  advance(f.box, 61000);  // first boundary was due at 61000
+  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v2,1,5eed0001,61000,43,21.5,100980");
+
+  g_host_millis = 62000;
+  f.bme.publish(44.0f, 22.0f, NAN);  // newer values: cache only, not a record
+  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v2,1,5eed0001,61000,43,21.5,100980");
+  CHECK_EQ_STR(ask(f.box, f.io, "READ_LIVE"),
+               "LIVE,v2,5eed0001,62000|bme280,publish=2,handoff_age_ms=0,acquired=unknown,"
+               "humidity=44,temperature=22,pressure=!non_finite");
+
+  advance(f.box, 121000);  // second record keeps healthy channels
+  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v2,2,5eed0001,121000,44,22,!non_finite");
+
+  bbcore::Record rec;
+  advance(f.box, 181000);  // no new hand-off: repeated, not presented as new
+  CHECK(f.box.registrationErrors() == 0);
+  CHECK_EQ_STR(ask(f.box, f.io, "INFO"),
+               "OK INFO uid=unassigned fw=0.0.0-host-test sensors=bme280 wire=v2-candidate "
+               "boot=5eed0001 recording_s=60 record=3 record_ms=181000 buffered=3 backpressure=0 "
+               "skipped=0 storage=ram net=not_implemented acquired_time=unknown reg_errors=0");
+  (void)rec;
+}
+
+static void test_never_published_and_skips() {
+  Fixture f;
+  advance(f.box, 61000);
+  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v2,1,5eed0001,61000,!no_sample,!no_sample,!no_sample");
+  advance(f.box, 61000 + 3 * 60000 + 5);  // service late by three intervals: one record
+  CHECK(ask(f.box, f.io, "INFO").find(" record=2 ") != std::string::npos);
+  CHECK(ask(f.box, f.io, "INFO").find(" skipped=2 ") != std::string::npos);
+}
+
+static void test_backpressure_keeps_latest() {
+  Fixture f;
+  uint32_t t = 1000;
+  for (int i = 0; i < BARDBOX_BUFFER_RAM_RECORDS + 2; ++i) {
+    t += 60000;
+    f.bme.publish(40.0f + i, 20.0f, 100000.0f);
+    advance(f.box, t);
+  }
+  const std::string info = ask(f.box, f.io, "INFO");
+  CHECK(info.find(" buffered=8 backpressure=2 ") != std::string::npos);
+  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v2,10,5eed0001,601000,49,20,100000");
+}
+
+static void test_serial_parsing() {
+  Fixture f;
+  CHECK_EQ_STR(ask(f.box, f.io, "ping"), "PONG");
+  CHECK_EQ_STR(ask(f.box, f.io, "  read_live  ").substr(0, 8), "LIVE,v2,");
+  CHECK_EQ_STR(ask(f.box, f.io, "BOGUS"), "ERR UNKNOWN_CMD");
+  std::string longLine(200, 'X');
+  CHECK_EQ_STR(ask(f.box, f.io, longLine.c_str()), "");  // discarded, no reply
+  CHECK_EQ_STR(ask(f.box, f.io, "PING"), "PONG");        // parser recovered
+  CHECK(bbcore::parseSerialCommand("READ_LIVE") == bbcore::SerialCommand::ReadLive);
+}
+
+static void test_settings() {
+  Fixture f;
+  uint32_t v = 0;
+  CHECK(f.box.getSetting("recording_interval_ms", v) && v == 60000);
+  CHECK(!f.box.getSetting("wifi_password", v));
+}
+
+int main() {
+  test_registration();
+  test_publish_checks();
+  test_types();
+  test_records_vs_live();
+  test_never_published_and_skips();
+  test_backpressure_keeps_latest();
+  test_serial_parsing();
+  test_settings();
+  if (failures) {
+    fprintf(stderr, "%d check(s) failed\n", failures);
+    return 1;
+  }
+  printf("bardbox host tests: all checks passed (simulated values, no hardware)\n");
+  return 0;
+}

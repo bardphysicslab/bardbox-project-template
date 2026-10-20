@@ -13,33 +13,36 @@ software/firmware/
   lib/
 ```
 
-Starting layout ([FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824),
-October 20, 2026). Each folder has a role README. Folders marked *role only*
-contain no code yet; the facade name `BardBoxInterface` is accepted, while
-other names and all interfaces are proposals maintained in
-[`bardbox/docs`](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-blueprint.md).
-Start in `src/main.cpp`; split a larger project's `src/` later, only when needed.
+Layout and milestone M1 ([#36](https://github.com/bardphysicslab/bardbox-project-template/issues/36)):
+the BardBox modules in `lib/` now contain code, host-tested with simulated
+values and built for the supported board, but not run on hardware. M1 is
+progress toward the first usable template, not its completion: recording is
+RAM-only, and network delivery and OTA are not implemented. Start in
+`src/main.cpp`.
 
 ```text
 software/firmware/
-  platformio.ini            build environment (unchanged)
-  src/main.cpp              start file; existing simulator (unchanged)
-  include/                  standard project headers; four helpers
-  include/config.example.h  tracked safe config example (not consumed yet)
-  include/config.h          your ignored local copy (not consumed yet)
-  lib/BardBoxInterface/     beginner facade; the only BardBox entry (role only)
-  lib/BardBoxSerial/        private core: serial owner (role only)
-  lib/BardBoxNetwork/       private core: network delivery owner (role only)
-  lib/BardBoxBuffer/        private core: durable record queue (role only)
-  test/                     host and integration tests (role only)
+  platformio.ini                     Feather ESP32-S3 (8 MiB, no PSRAM) environments
+  partitions_bardbox_8mb_ota.csv     OTA-ready 8 MiB layout (slots reserved; OTA not implemented)
+  src/main.cpp                       student start file: version, sensors, read/publish/delay
+  src/SimulatedBme280.h              SIMULATED driver for the M1 demo
+  include/config.example.h           tracked settings example (Serial, Identity, Network, Buffer)
+  include/config.h                   your ignored local copy
+  include/                           also four standalone helpers (see include/README.md)
+  lib/BardBoxInterface/              student API; wires the owners together
+  lib/BardBoxMeasurements/           registration, publish checks, latest-reading cache
+  lib/BardBoxBuffer/                 recording interval, records, admission (RAM-only in M1)
+  lib/BardBoxSerial/                 serial commands and wire forms
+  lib/BardBoxNetwork/                network settings and status (no delivery in M1)
+  test/host/                         host tests and demo (simulated)
 ```
 
-The example node implements the compact BardBox device protocol:
-
-- `INFO`
-- `HEADER`
-- `READ`
-- optional `PING`
+Build: `pio run -e feather_s3` fails until `FIRMWARE_VERSION` is set in
+`src/main.cpp` ("Please set FIRMWARE_VERSION in main.cpp."); `pio run -e
+feather_s3_m1_test` builds with an explicit test version. Serial commands:
+`INFO`, `HEADER`, `READ` (latest completed record), `READ_LIVE` (latest cached
+readings) and `PING`; `HEADER`, `READ` and `READ_LIVE` use a v2 candidate
+framing pending review (see `lib/BardBoxSerial/README.md`).
 
 The example UID is `bb-prj-air-001`. New UIDs must follow
 `bb-<site>-<type>-<instance>` with 3-letter lowercase site/type codes and a
@@ -78,10 +81,11 @@ deployed hardware. Publish the resulting health state through additive
 ## Local configuration
 
 Settings live in one place: tracked `include/config.example.h` (safe example
-with Serial, Network and Buffer sections) and your ignored local copy
+with Serial, Identity, Network and Buffer sections) and your ignored local copy
 `include/config.h`, created once with `cp -n include/config.example.h include/config.h`
 and never overwritten; see [`include/README.md`](include/README.md#configuration-headers).
-Neither header is consumed by the current simulator yet. Rename an existing
+BardBox modules read the local `config.h`; a setting left out uses the
+module's documented default. Rename an existing
 private `secrets.h` locally without replacing its values. Never add credentials
 to the tracked example.
 

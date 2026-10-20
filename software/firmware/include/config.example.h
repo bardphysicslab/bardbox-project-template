@@ -5,33 +5,46 @@
 // Copy this file to include/config.h (ignored by Git via **/config.h) and edit
 // the local copy. Never put real credentials in this tracked example.
 //
-// STATUS: NOT CONSUMED. No source file includes this header or config.h yet.
-// The current simulator (src/main.cpp) hardcodes its values, so editing these
-// settings changes nothing until a module explicitly #includes "config.h" and
-// reads them. Each module will read and validate its own section.
+// STATUS: read by the BardBox modules (lib/) when this file is copied to
+// include/config.h. Any setting left out uses the module's documented default,
+// and each module validates its own section at build time.
 
 // ---------------------------------------------------------------------------
 // Serial (BardBoxSerial)
 // ---------------------------------------------------------------------------
 
-// Serial baud rate, in bit/s. Matches the current simulator, which hardcodes
-// Serial.begin(115200) in src/main.cpp (not read from here yet).
-// platformio.ini monitor_speed sets only the computer's serial monitor and
-// must match this value; it does not set Serial.begin.
+// Serial baud rate, in bit/s. platformio.ini monitor_speed sets only the
+// computer's serial monitor and must match this value.
 #define BARDBOX_SERIAL_BAUD 115200
 
 // ---------------------------------------------------------------------------
-// Network (BardBoxNetwork) -- not implemented
+// Identity (BardBoxInterface)
 // ---------------------------------------------------------------------------
 
-// Agreed default: Wi-Fi/network delivery on. No network module exists yet, so
-// no setting is defined here. Wi-Fi SSID, password, endpoint and upload
-// credentials are private: they belong only in the ignored local config.h or
-// runtime provisioning, never in this file, and have no defaults.
+// Device UID reported in INFO. "unassigned" is the unprovisioned sentinel.
+#define BARDBOX_DEVICE_UID "unassigned"
 
 // ---------------------------------------------------------------------------
-// Buffer (BardBoxBuffer) -- not implemented
+// Network (BardBoxNetwork) -- delivery not implemented yet (M1)
 // ---------------------------------------------------------------------------
 
-// Agreed default: persistent recording on. No Buffer module exists yet, so no
-// capacity or limit setting is defined here.
+// Agreed default: network delivery on (1); 0 makes a serial-only device. M1
+// only reports this setting; it does not connect or deliver.
+#define BARDBOX_NETWORK_ENABLED 1
+
+// Wi-Fi SSID, password, endpoint and upload credentials are private: they
+// belong only in the ignored local config.h or runtime provisioning, never in
+// this file, and have no defaults.
+
+// ---------------------------------------------------------------------------
+// Buffer (BardBoxBuffer) -- M1 keeps records in RAM only, not persistent yet
+// ---------------------------------------------------------------------------
+
+// Recording interval, in seconds: how often a completed record is created and
+// admitted to the buffer. Not sensor sampling and not network catch-up timing.
+// Valid 5..86400. The default is an implementation choice, not a universal
+// sensor cadence.
+#define BARDBOX_RECORDING_INTERVAL_S 60
+
+// Records kept in memory (1..64).
+#define BARDBOX_BUFFER_RAM_RECORDS 8

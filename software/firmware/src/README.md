@@ -2,27 +2,18 @@
 
 Application source for this PlatformIO project.
 
-**Current.** `main.cpp` is a 65-line simulator: it returns fixed example
-readings and writes the existing `INFO`/`HEADER`/`READ`/`PING` responses
-itself. It has no runtime settings, network delivery, Buffer or private
-configuration header, and does not use the `include/` helpers.
-
-**Target (proposed, not implemented).** `main.cpp` is the start file to open
-in VS Code with PlatformIO. Student code keeps its sensor setup, reads and
-`BardBoxInterface` calls (`lib/BardBoxInterface`) here. Serial responses, network
-delivery and recording are implemented by the private BardBox core in `lib/`,
-behind the facade; the student writes no transport code. A larger project can
-split its own files within `src/` later, only when needed; no subfolder is
-prescribed.
+**Current (M1).** `main.cpp` is the student start file: it sets
+`FIRMWARE_VERSION`, declares one sensor and its measurements, starts the
+**simulated** BME280 in `SimulatedBme280.h` and BardBox, then reads, publishes
+and calls `delay(500)` in `loop()`. Replace `SimulatedBme280` with a real driver;
+its initialization and reads stay application code. Serial responses, records
+and service are handled by the BardBox modules in `lib/`; the student writes no
+transport code.
 
 ## Configuration
 
 Configuration headers live in [`include/`](../include/README.md#configuration-headers),
-not here. `main.cpp` includes `config.h` only if its variant uses
-configuration; the current simulator includes none.
+not here. BardBox modules read `include/config.h` themselves; `main.cpp` does not
+include it.
 
-Status: this README was added by the [FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824) scaffold (October 20,
-2026). The existing simulator `main.cpp` is unchanged and is the only code
-here; the target above, including the `BardBoxInterface` facade and runtime
-settings, is not implemented. Names and interfaces are proposals maintained in
-`bardbox/docs`.
+Status: **M1 progress** ([#36](https://github.com/bardphysicslab/bardbox-project-template/issues/36)): implemented and host-tested with simulated values; built for the Feather ESP32-S3 but not run on hardware. Names, wire forms and behaviors marked candidate are pending review.
