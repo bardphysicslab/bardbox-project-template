@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "BardBoxRecord.h"
+#include "BardBoxSettings.h"
 #include "BardBoxSerialConfig.h"
 
 namespace bbcore {
@@ -75,12 +76,13 @@ class SerialDataSource {
   virtual uint8_t liveChannels(RecordChannel *out, uint32_t &nowMs) = 0;
 };
 
-enum class SerialCommand : uint8_t { Empty, Info, Header, Read, ReadLive, Ping, Unknown };
+enum class SerialCommand : uint8_t { Empty, Info, Header, Read, ReadLive, Ping, Config, Unknown };
 
 // Wire protocol name stamped on records; a candidate pending review.
 constexpr const char *kWireProtocol = "v2-candidate";
 
-// Case-insensitive; ignores surrounding spaces.
+// Case-insensitive command word; ignores surrounding spaces. Any line whose
+// first word starts with CONFIG_ is a settings command (arguments follow).
 SerialCommand parseSerialCommand(const char *line);
 
 // Wire forms. INFO keeps the existing "OK INFO uid= fw= sensors=" prefix and
@@ -89,7 +91,8 @@ SerialCommand parseSerialCommand(const char *line);
 // not reinterpret it.
 class BardBoxSerial {
  public:
-  static constexpr size_t kMaxLine = 64;  // longer lines are discarded
+  // Longer lines are discarded. Fits CONFIG_SET with a 63-byte password in hex.
+  static constexpr size_t kMaxLine = 160;
   static constexpr size_t kMaxBytesPerStep = 256;
   static constexpr size_t kMaxReply = 768;
 
@@ -99,6 +102,9 @@ class BardBoxSerial {
     begin(port, source);
   }
   void begin(Stream &port, SerialDataSource &source);
+  // Enables the CONFIG_* settings commands (capability config/1). Without it
+  // they answer as unknown commands.
+  void useSettings(BardBoxSettings &settings) { settings_ = &settings; }
 
   // Bounded step. Output never blocks: a pending reply is written only as far
   // as the port reports room (partial writes resume next step), and no new
@@ -119,10 +125,12 @@ class BardBoxSerial {
   void writeRead(SerialLine &line);
   void writeReadLive(SerialLine &line);
   void writeChannelName(SerialLine &line, uint8_t channel);
+  void handleConfig(const char *line, SerialLine &out);
   static void writeValue(SerialLine &line, const ChannelValue &value);
 
   Stream *port_ = nullptr;
   SerialDataSource *source_ = nullptr;
+  BardBoxSettings *settings_ = nullptr;
   char buf_[kMaxLine + 1] = {};
   size_t len_ = 0;
   bool overflow_ = false;

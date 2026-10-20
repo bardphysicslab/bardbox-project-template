@@ -35,6 +35,7 @@ software/firmware/
   lib/BardBoxBuffer/                 recording interval, records, durable FIFO queue and ACK
   lib/BardBoxSerial/                 serial commands and wire forms
   lib/BardBoxNetwork/                Wi-Fi/HTTPS, delivery policy/mailbox and candidate JSON
+  lib/BardBoxSettings/               saved UID and Wi-Fi settings (override config.h, next boot)
   test/host/                         host tests and demo (simulated)
 ```
 
@@ -42,8 +43,14 @@ Build: `pio run -e feather_s3` fails until `FIRMWARE_VERSION` is set in
 `src/main.cpp` ("Please set FIRMWARE_VERSION in main.cpp."); `pio run -e
 feather_s3_m1_test` builds with an explicit test version. Serial commands:
 `INFO`, `HEADER`, `READ` (latest completed record), `READ_LIVE` (latest cached
-readings) and `PING`; `HEADER`, `READ` and `READ_LIVE` use a v2 candidate
-framing pending review (see `lib/BardBoxSerial/README.md`).
+readings), `PING` and the `CONFIG_*` settings commands; `HEADER`, `READ` and
+`READ_LIVE` use a v2 candidate framing pending review (see
+`lib/BardBoxSerial/README.md`).
+
+UID, Wi-Fi SSID and password can be changed over USB serial without a rebuild
+(the flasher's Update settings, or `CONFIG_*`). Saved values override the
+compiled defaults from the next start and survive an ordinary reflash; see
+`lib/BardBoxSettings/README.md`.
 
 The example UID is `bb-prj-air-001`. New UIDs must follow
 `bb-<site>-<type>-<instance>` with 3-letter lowercase site/type codes and a
@@ -93,6 +100,32 @@ to the tracked example.
 Use `hardware/ecad` for KiCad and `hardware/mcad` for mechanical/enclosure files.
 Keep separate firmware projects under `software/firmware/<project>`; a single
 project may use this directory directly.
+
+## Flash a local build and set UID/Wi-Fi
+
+1. Build: `pio run -e <environment>`. The files are in `.pio/build/<environment>/`:
+   `firmware.bin` (the application), `bootloader.bin` and `partitions.bin` (the
+   board layout).
+2. Flash with the development flasher in `bardphysicslab/firmware-tools`
+   (`tools/dev-flasher`), or with `pio run -e <environment> -t upload`. For an
+   ordinary update, choose `firmware.bin` only. The flasher writes it into the
+   inactive application slot and keeps the running firmware as the previous image.
+   Saved settings (NVS) and stored records (LittleFS) are not written. Add
+   `bootloader.bin` and `partitions.bin` only for a blank board or a layout repair
+   (first install). Note that PlatformIO's own upload always writes the first slot and
+   resets the boot record instead.
+3. Press RESET, then use **Update settings** (or the `CONFIG_*` commands) to set the
+   UID and Wi-Fi. They apply at the next start.
+
+The default compiled Wi-Fi network is empty. The intended default ("Bard Wireless"
+open network) is not compiled in until its exact SSID is confirmed; see
+[firmware-tools#50](https://github.com/bardphysicslab/firmware-tools/issues/50).
+
+**OTA-ready layout, not OTA:** `partitions_bardbox_8mb_ota.csv` keeps two
+application slots, a boot record and separate settings and record partitions, so
+updates can keep the previous image and the saved data. Network OTA, with signed
+images, rollout, health confirmation and rollback, is a later milestone and is not
+implemented by this layout.
 
 ## Synthetic Wi-Fi demo
 
