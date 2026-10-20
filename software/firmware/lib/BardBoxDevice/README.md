@@ -2,19 +2,20 @@
 
 Proposed beginner-facing facade: the only BardBox entry student code calls.
 
-**Role:** field registration and `begin`; `poll(nowMs)` giving the Serial,
-network and Buffer owners bounded progress; latest-sample publication; the
-completed-record handoff with ticket status; shared generic checks with
-per-channel outcomes; every-record non-secret metadata (UID, MAC, firmware and
-protocol versions, time validity), never fabricated.
+| Contract | Overview |
+| --- | --- |
+| Responsibility | Field registration and `begin`; `poll(nowMs)` progress for the Serial, network and Buffer owners; latest-sample publication; completed-record handoff; shared generic checks; every-record metadata |
+| Inputs | Declared fields with types and units; samples (`publishSample`); completed records the student built, raw or averaged, with window/method metadata (`submitRecord`); `nowMs` |
+| Outputs | Per-channel results (`valid`, `missing`, `invalid`, `failed`); record admission (ticket or rejection) and `recordStatus`; latest snapshot to Serial; records to Buffer |
+| State | Registered schema; latest accepted snapshot and its identity; outstanding record tickets (bounded) |
+| Side effects | Stamps non-secret metadata (UID, MAC, firmware/protocol versions, time validity); never fabricated. No direct I/O of its own |
+| Failures | Registration errors; structurally unusable sample or record rejected whole; coded per-channel nulls; record rejection or backpressure reported, never silently dropped |
+| Dependencies | `BardBoxSerial`, `BardBoxNetwork`, `BardBoxBuffer`, settings and time modules; coordinates them without merging ownership |
+| Compatibility | Existing `INFO`/`HEADER`/`READ` forms unchanged until a versioned contract is adopted |
+| Status | Current scaffold: this README only, no code. Target: unimplemented proposal |
 
-**Depends on:** `BardBoxSerial`, `BardBoxNetwork`, `BardBoxBuffer`, settings
-and time modules. It coordinates them without merging their ownership.
+Authoritative contracts: [Serial/base API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-base-and-serial-api.md) (student contract draft), [decision index](https://github.com/bardphysicslab/bardbox/blob/main/docs/DECISIONS.md) (BB-005, BB-006).
 
-Contracts: [serial/base API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-base-and-serial-api.md)
-(including the student contract draft), [decision index](https://github.com/bardphysicslab/bardbox/blob/main/docs/DECISIONS.md)
-(BB-005, BB-006) and [architecture map](https://github.com/bardphysicslab/bardbox/blob/main/docs/architecture-map.md#node-firmware-template).
-
-Status: role README only ([FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824), October 20, 2026). Nothing
-here is implemented; there is no code in this folder. Names and interfaces are
-proposals maintained in `bardbox/docs`, not accepted APIs.
+Status: role README only, added by the [FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824) scaffold (October
+20, 2026). This folder contains no code; the target contract is not
+implemented and its names are proposals maintained in `bardbox/docs`.

@@ -9,6 +9,6 @@ No tests exist yet and none run in CI. Acceptance targets are listed in the
 [serial/base API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-base-and-serial-api.md#acceptance-and-implementation-status)
 and [Buffer API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-buffer-api.md).
 
-Status: role README only ([FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824), October 20, 2026). Nothing
-here is implemented; there is no code in this folder. Names and interfaces are
-proposals maintained in `bardbox/docs`, not accepted APIs.
+Status: role README only, added by the [FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824) scaffold (October
+20, 2026). This folder contains no code; the target contract is not
+implemented and its names are proposals maintained in `bardbox/docs`.

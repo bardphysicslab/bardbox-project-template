@@ -15,15 +15,13 @@ software/firmware/
 
 Starting layout ([FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824),
 October 20, 2026). Each folder has a role README; folders marked *role only*
-contain no code yet, and their names and interfaces are still proposals
+contain no code yet. Split a larger project's `src/` later, only when needed; and their names and interfaces are still proposals
 maintained in [`bardbox/docs`](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-blueprint.md):
 
 ```text
 software/firmware/
   platformio.ini            build environment (unchanged)
-  src/main.cpp              start file; a small project can keep its sensor code here
-  src/application/          optional: application code as a project grows (role only)
-  src/application/sensors/  optional: sensor adapters / custom drivers (role only)
+  src/main.cpp              start file: sensor setup, reads and BardBox calls
   include/                  existing BardBoxSensorHealth.h, BardBoxTransportRecovery.h
   lib/BardBoxDevice/        beginner facade; the only BardBox entry (role only)
   lib/BardBoxSerial/        private core: serial owner (role only)

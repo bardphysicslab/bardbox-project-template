@@ -1,22 +1,21 @@
 # BardBoxNetwork
 
-Proposed network delivery owner behind `BardBoxDevice`.
+Proposed network delivery owner behind `BardBoxDevice`. Student code makes no network calls.
 
-**Role:** Wi-Fi connect and bounded retry, oldest-first delivery of durable
-records read from the Buffer, server acknowledgement, and requesting Buffer
-removal only after that acknowledgement. Send-time diagnostics stay separate
-from a record's stored metadata. Student code makes no network calls. Steps
-must be bounded so serial service stays responsive; the scheduling model is
-unresolved.
+| Contract | Overview |
+| --- | --- |
+| Responsibility | Wi-Fi connect and bounded retry; oldest-first delivery of durable records; server acknowledgement |
+| Inputs | Oldest durable record and its token from the Buffer; endpoint and credential settings; `nowMs` |
+| Outputs | Pushed records; `acknowledge(token)` to the Buffer only after server acceptance; diagnostics |
+| State | Connection and retry/backoff state; at most one in-flight record copy |
+| Side effects | Network I/O. Send-time diagnostics stay separate from a record's stored metadata |
+| Failures | Connection, timeout and server errors become retries and diagnostics; never treated as acknowledgement and never discard unacknowledged data |
+| Dependencies | `BardBoxBuffer`, settings, platform Wi-Fi/HTTP adapter; may use [`include/BardBoxTransportRecovery.h`](../../include/README.md) |
+| Compatibility | Published Web Node protocol. Each step must be bounded (deadline or work limit) so serial stays responsive; the scheduling model is unresolved |
+| Status | Current scaffold: this README only, no code. Target: unimplemented proposal |
 
-**Depends on:** `BardBoxBuffer`, settings (endpoint, credentials) and a
-platform HTTP/Wi-Fi adapter. It may use
-[`include/BardBoxTransportRecovery.h`](../../include/README.md) for recovery
-policy.
+Authoritative contracts: [Web Node protocol](https://github.com/bardphysicslab/bardbox/blob/main/docs/web-node-protocol.md) (published), [Buffer API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-buffer-api.md).
 
-Contracts: [Web Node protocol](https://github.com/bardphysicslab/bardbox/blob/main/docs/web-node-protocol.md) (published standard),
-[Buffer API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-buffer-api.md).
-
-Status: role README only ([FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824), October 20, 2026). Nothing
-here is implemented; there is no code in this folder. Names and interfaces are
-proposals maintained in `bardbox/docs`, not accepted APIs.
+Status: role README only, added by the [FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824) scaffold (October
+20, 2026). This folder contains no code; the target contract is not
+implemented and its names are proposals maintained in `bardbox/docs`.
