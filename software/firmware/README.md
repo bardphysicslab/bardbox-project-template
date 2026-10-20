@@ -24,7 +24,7 @@ Start in `src/main.cpp`; split a larger project's `src/` later, only when needed
 software/firmware/
   platformio.ini            build environment (unchanged)
   src/main.cpp              start file; existing simulator (unchanged)
-  include/                  standard project headers; two existing helpers
+  include/                  standard project headers; four helpers
   include/config.example.h  tracked safe config example (not consumed yet)
   include/config.h          your ignored local copy (not consumed yet)
   lib/BardBoxInterface/     beginner facade; the only BardBox entry (role only)
@@ -59,6 +59,11 @@ New firmware may reuse these sensor- and transport-agnostic headers:
 - `include/BardBoxTransportRecovery.h`: tracks acknowledgements and returns
   a bounded recovery step: reconnect, reinitialize the network client, then
   optional device restart.
+- `include/BardBoxSensorValueRule.h`: optional per-measurement value check
+  (finite, min/max, maximum change and rate of change); the rule comes from the
+  sensor or measurement definition.
+- `include/BardBoxI2CRecovery.h`: opt-in I2C bus restart above `Wire.h`; it
+  restarts on default pins and clock, so custom pins/clock are not preserved.
 
 They are policy/state helpers, not complete networking or sensor drivers. A
 Web Node still must persist before upload, retry oldest-first, delete only after

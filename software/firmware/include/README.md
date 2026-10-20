@@ -4,10 +4,13 @@ Standard PlatformIO project include folder: headers shared by this project's
 `src/` files. It is not a BardBox module, and whether future helpers move into
 `lib/` modules is not settled.
 
-It holds two helpers and the tracked
-[configuration example](#configuration-headers) `config.example.h`. Both helpers are policy and state trackers only: they
-perform no hardware, sensor or network I/O, and the current simulator
-`main.cpp` does not use them.
+It holds four helpers and the tracked
+[configuration example](#configuration-headers) `config.example.h`.
+`BardBoxSensorHealth.h` and `BardBoxTransportRecovery.h` are policy and state
+trackers only, and `BardBoxSensorValueRule.h` is a pure value check: none of
+them performs hardware, sensor or network I/O. `BardBoxI2CRecovery.h` does
+restart the I2C bus when called. The current simulator `main.cpp` uses none of
+them.
 
 ## Configuration headers
 
@@ -66,3 +69,27 @@ deployed hardware. It never authorizes discarding unacknowledged data.
 Contracts: [Web Node protocol](https://github.com/bardphysicslab/bardbox/blob/main/docs/web-node-protocol.md) and the
 [firmware README](../README.md#reliability-building-blocks). These headers are
 unchanged by the [FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824) scaffold.
+
+## BardBoxSensorValueRule.h
+
+`SensorValueRule` and `validateSensorValue(value, rule, havePrevious,
+previousValue, elapsedMs)` reject non-finite values and, when enabled by the
+rule, values outside a min/max, a maximum change from the previous value, or a
+maximum rate of change per second. It is standalone and optional: a sensor or
+measurement definition supplies the rule, and it neither uses nor changes
+`BardBoxSensorHealth.h`. It returns only valid or invalid, so the caller
+chooses the fault code.
+
+## BardBoxI2CRecovery.h
+
+`recoverI2CBus(wire, config)` is an opt-in I2C transport recovery step above
+`Wire.h`, called only after the project's health policy asks for recovery. On
+ESP32 it calls `wire.end()` and then `wire.begin()` with no arguments, so the
+bus restarts on the core's **default pins and clock**: custom SDA/SCL pins or a
+`setClock()` frequency are not preserved, and a project using them must
+restore them or supply its own hook. On other platforms it does nothing and
+returns `false`. It has not been tested on hardware in this template.
+
+Both headers moved here from the retired root `firmware/include/` folder, whose
+older, unused `SensorHealthTracker` variant was removed in favour of
+`BardBoxSensorHealth.h` above; the previous files remain in Git history.

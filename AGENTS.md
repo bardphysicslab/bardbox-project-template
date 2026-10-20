@@ -72,10 +72,11 @@ Add health and diagnostic fields without breaking existing payloads, commands, d
 
 When adding or changing BardBox firmware:
 
-1. Use the shared sensor-health/recovery layer for attached sensors.
-   Note: `software/firmware/include/BardBoxSensorHealth.h` (built) and
-   `firmware/include/BardBoxSensorHealth.h` (not built, different API) currently
-   both exist. Do not extend either or include both until a maintainer chooses one.
+1. Use the shared sensor-health/recovery layer in `software/firmware/include/`
+   for attached sensors: `BardBoxSensorHealth.h`, plus the optional
+   `BardBoxSensorValueRule.h` and `BardBoxI2CRecovery.h`. The older root
+   `firmware/` copy with a different `SensorHealthTracker` API was retired
+   (see Git history); do not reintroduce a second same-named class.
 2. Keep the common layer sensor-agnostic. Never hard-code a sensor-specific physical range into shared health logic.
 3. Put measurement-specific validity rules with the sensor/measurement definition or project configuration. Rules may include units, min/max, max delta, max rate of change, checksum validation, internal fault flags, or other device-specific constraints.
 4. Treat transport errors, invalid samples, stale data, and device fault indications as distinct fault classes.
