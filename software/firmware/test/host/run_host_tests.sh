@@ -9,7 +9,7 @@ mkdir -p "$out"
 CXX=${CXX:-c++}
 inc="-I$here/stub"
 srcs=""
-for lib in BardBoxSerial BardBoxBuffer BardBoxNetwork BardBoxMeasurements BardBoxInterface; do
+for lib in BardBoxSerial BardBoxBuffer BardBoxNetwork BardBoxMeasurements BardBoxSettings BardBoxInterface; do
   inc="$inc -I$fw/lib/$lib/src"
   for f in "$fw/lib/$lib/src"/*.cpp; do [ -e "$f" ] && srcs="$srcs $f"; done
 done
@@ -17,6 +17,10 @@ done
 # defaults apply because include/ is not on this include path.
 $CXX -std=c++11 -Wall -Wextra -Werror -I"$here" $inc $srcs "$here/test_m1.cpp" -o "$out/test_m1"
 "$out/test_m1"
+
+# Saved device settings (UID, Wi-Fi) and the CONFIG_* serial commands.
+$CXX -std=c++11 -Wall -Wextra -Werror -I"$here" $inc $srcs "$here/test_settings.cpp" -o "$out/test_settings"
+"$out/test_settings"
 
 # Durable Buffer tests with a small capacity so saturation is exercised.
 $CXX -std=c++11 -Wall -Wextra -Werror -DBARDBOX_BUFFER_CAPACITY_RECORDS=4 \

@@ -60,6 +60,7 @@ SerialCommand parseSerialCommand(const char *line) {
   if (equalsIgnoreCase(line, len, "READ")) return SerialCommand::Read;
   if (equalsIgnoreCase(line, len, "READ_LIVE")) return SerialCommand::ReadLive;
   if (equalsIgnoreCase(line, len, "PING")) return SerialCommand::Ping;
+  if (len > 7 && equalsIgnoreCase(line, 7, "CONFIG_")) return SerialCommand::Config;
   return SerialCommand::Unknown;
 }
 
@@ -131,6 +132,13 @@ void BardBoxSerial::handle(const char *line) {
     case SerialCommand::Read: writeRead(out); break;
     case SerialCommand::ReadLive: writeReadLive(out); break;
     case SerialCommand::Ping: out.text("PONG").end(); break;
+    case SerialCommand::Config:
+      if (settings_) {
+        handleConfig(line, out);
+        break;
+      }
+      out.text("ERR UNKNOWN_CMD").end();  // firmware without the settings capability
+      break;
     case SerialCommand::Unknown: out.text("ERR UNKNOWN_CMD").end(); break;
   }
   if (out.overflowed()) {
@@ -141,6 +149,161 @@ void BardBoxSerial::handle(const char *line) {
     outLen_ = out.length();
   }
   outPos_ = 0;
+}
+
+// ---- Device settings (capability config/1, a candidate pending review) ----
+//
+// CONFIG_SCHEMA                fields, bounds, encoding and activation rule
+// CONFIG_GET                   saved and active public values; password presence only
+// CONFIG_BEGIN <revision>      start an update against the revision just read
+// CONFIG_SET <field> <hex|->   one field, value as hex bytes ("-" = empty)
+// CONFIG_COMMIT                validate all fields and save one record
+// CONFIG_ABORT                 discard the update
+// Values are never echoed; a password is reported only as set or empty.
+
+namespace {
+
+// Splits off the next space-separated word; returns its length (0 at end).
+size_t nextWord(const char *&p, const char *&word) {
+  while (*p == ' ' || *p == '\t') ++p;
+  word = p;
+  while (*p && *p != ' ' && *p != '\t') ++p;
+  return static_cast<size_t>(p - word);
+}
+
+int hexDigit(char c) {
+  if (c >= '0' && c <= '9') return c - '0';
+  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+  return -1;
+}
+
+// "-" is the empty value. Returns false for odd length or a non-hex digit.
+bool decodeHex(const char *s, size_t n, char *out, size_t cap, size_t &len) {
+  len = 0;
+  if (n == 1 && s[0] == '-') return true;
+  if (n == 0 || n % 2 || n / 2 > cap) return false;
+  for (size_t i = 0; i < n; i += 2) {
+    const int hi = hexDigit(s[i]), lo = hexDigit(s[i + 1]);
+    if (hi < 0 || lo < 0) return false;
+    out[len++] = static_cast<char>(hi * 16 + lo);
+  }
+  return true;
+}
+
+void hexText(SerialLine &line, const char *s) {
+  if (!*s) {
+    line.text("-");
+    return;
+  }
+  char pair[3];
+  for (; *s; ++s) {
+    snprintf(pair, sizeof pair, "%02x", static_cast<unsigned char>(*s));
+    line.text(pair);
+  }
+}
+
+const char *storeStateName(BardBoxSettings::StoreState s) {
+  switch (s) {
+    case BardBoxSettings::StoreState::None: return "none";
+    case BardBoxSettings::StoreState::Saved: return "saved";
+    case BardBoxSettings::StoreState::Invalid: return "invalid";
+    default: return "unavailable";
+  }
+}
+
+bool parseRevision(const char *s, size_t n, uint32_t &out) {
+  if (n == 0 || n > 10) return false;
+  uint64_t v = 0;
+  for (size_t i = 0; i < n; ++i) {
+    if (s[i] < '0' || s[i] > '9') return false;
+    v = v * 10 + static_cast<uint64_t>(s[i] - '0');
+  }
+  if (v > 0xffffffffull) return false;
+  out = static_cast<uint32_t>(v);
+  return true;
+}
+
+}  // namespace
+
+void BardBoxSerial::handleConfig(const char *line, SerialLine &out) {
+  BardBoxSettings &st = *settings_;
+  const char *p = line, *word = nullptr, *arg = nullptr, *extra = nullptr;
+  const size_t n = nextWord(p, word);
+  size_t argLen = nextWord(p, arg);
+  const char *value = nullptr;
+  const size_t valueLen = nextWord(p, value);
+  const bool trailing = nextWord(p, extra) > 0;
+  const uint32_t now = millis();
+  typedef BardBoxSettings::Result R;
+
+  if (equalsIgnoreCase(word, n, "CONFIG_SCHEMA") && !argLen) {
+    out.text("CONFIG_SCHEMA,version=1,encoding=hex,activation=next_boot,fields=")
+        .text("uid:1:32:public;wifi_ssid:0:32:public;wifi_password:8:63:secret:empty_open").end();
+    return;
+  }
+  if (equalsIgnoreCase(word, n, "CONFIG_GET") && !argLen) {
+    const SettingsValues &next = st.next(), &active = st.active();
+    out.text("CONFIG,version=1,store=").text(storeStateName(st.storeState())).text(",revision=").uint(st.revision());
+    out.text(",uid=").text(next.uid).text(",wifi_ssid=");
+    hexText(out, next.ssid);
+    out.text(",wifi_password=").text(next.password[0] ? "set" : "empty");
+    out.text(",active_uid=").text(active.uid).text(",active_wifi_ssid=");
+    hexText(out, active.ssid);
+    out.text(",active_wifi_password=").text(active.password[0] ? "set" : "empty");
+    out.text(",pending=").text(st.pending() ? "1" : "0").text(",activation=next_boot").end();
+    return;
+  }
+  R result;
+  BardBoxSettings::Field field = BardBoxSettings::Field::Unknown;
+  if (equalsIgnoreCase(word, n, "CONFIG_BEGIN") && argLen && !valueLen) {
+    uint32_t revision = 0;
+    if (!parseRevision(arg, argLen, revision)) {
+      out.text("ERR,CONFIG_COMMAND").end();
+      return;
+    }
+    result = st.beginUpdate(revision, now);
+    if (result == R::Ok) {
+      out.text("CONFIG_BEGIN_OK,revision=").uint(st.revision()).end();
+      return;
+    }
+  } else if (equalsIgnoreCase(word, n, "CONFIG_SET") && argLen && valueLen && !trailing) {
+    char name[16] = {};
+    if (argLen < sizeof name) memcpy(name, arg, argLen);
+    field = BardBoxSettings::fieldNamed(name);
+    char decoded[64];
+    size_t len = 0;
+    if (field != BardBoxSettings::Field::Unknown && !decodeHex(value, valueLen, decoded, sizeof decoded, len))
+      result = st.rejectValue(now);
+    else
+      result = st.setField(field, decoded, len, now);
+    if (result == R::Ok) {
+      out.text("CONFIG_SET_OK,field=").text(BardBoxSettings::fieldName(field)).end();
+      return;
+    }
+  } else if (equalsIgnoreCase(word, n, "CONFIG_COMMIT") && !argLen) {
+    result = st.commit(now, field);
+    if (result == R::Ok) {
+      out.text("CONFIG_COMMIT_OK,revision=").uint(st.revision()).text(",activation=next_boot").end();
+      return;
+    }
+  } else if (equalsIgnoreCase(word, n, "CONFIG_ABORT") && !argLen) {
+    st.abort();
+    out.text("CONFIG_ABORT_OK").end();
+    return;
+  } else {
+    out.text("ERR,CONFIG_COMMAND").end();
+    return;
+  }
+  switch (result) {
+    case R::Unavailable: out.text("ERR,CONFIG_UNAVAILABLE").end(); break;
+    case R::StaleRevision: out.text("ERR,CONFIG_REVISION,revision=").uint(st.revision()).end(); break;
+    case R::NoTransaction: out.text("ERR,CONFIG_NO_TRANSACTION").end(); break;
+    case R::Expired: out.text("ERR,CONFIG_EXPIRED").end(); break;
+    case R::UnknownField: out.text("ERR,CONFIG_FIELD").end(); break;
+    case R::InvalidValue: out.text("ERR,CONFIG_VALUE,field=").text(BardBoxSettings::fieldName(field)).end(); break;
+    default: out.text("ERR,CONFIG_STORE,revision=").uint(st.revision()).end(); break;
+  }
 }
 
 void BardBoxSerial::writeChannelName(SerialLine &line, uint8_t c) {

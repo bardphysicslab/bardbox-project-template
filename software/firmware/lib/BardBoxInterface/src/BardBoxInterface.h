@@ -6,6 +6,7 @@
 //   BardBoxBuffer       - recording interval, boundaries, records, admission
 //   BardBoxSerial       - commands and every wire form
 //   BardBoxNetwork      - delivery of saved records through an injected transport
+//   BardBoxSettings     - saved per-device UID and Wi-Fi settings (next boot)
 //
 // The Buffer (and its codec) has one owner: the BardBox service task. The
 // Network owner reaches it only through a bounded mailbox. No OTA yet.
@@ -19,6 +20,7 @@
 #include "BardBoxMeasurements.h"
 #include "BardBoxNetwork.h"
 #include "BardBoxSerial.h"
+#include "BardBoxSettings.h"
 
 // Student code must define FIRMWARE_VERSION before including this header.
 #if !defined(BARDBOX_INTERFACE_IMPLEMENTATION) && !defined(FIRMWARE_VERSION)
@@ -77,6 +79,8 @@ class BardBoxInterface : private bbcore::SerialDataSource {
   bool beginWithPort(Stream &port, const char *firmwareVersion, bool startServiceTask);
   // Storage for the Buffer; set before begin. ESP32 uses LittleFS by default.
   void useStorage(bbcore::StorageAdapter *storage) { storage_ = storage; }
+  // Store for saved device settings; set before begin. ESP32 uses NVS.
+  void useSettingsStore(bbcore::SettingsStore *store) { settingsStore_ = store; }
   // Optional injected delivery transport, set before begin. ESP32 otherwise
   // selects its Wi-Fi/HTTPS adapter when the private configuration is valid.
   void useTransport(bbcore::Transport *transport) { transport_ = transport; }
@@ -112,7 +116,9 @@ class BardBoxInterface : private bbcore::SerialDataSource {
   bbcore::BardBoxNetwork network_;
   bbcore::DeliveryMailbox mailbox_;
   bbcore::DeliveryBufferSide deliveryOwner_;
+  bbcore::BardBoxSettings settings_;
   bbcore::StorageAdapter *storage_ = nullptr;
+  bbcore::SettingsStore *settingsStore_ = nullptr;
   bbcore::Transport *transport_ = nullptr;
   uint32_t hostBootId_ = 0x5eed0001u;
   bool begun_ = false;

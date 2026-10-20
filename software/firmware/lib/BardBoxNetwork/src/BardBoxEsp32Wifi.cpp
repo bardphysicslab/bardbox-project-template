@@ -131,14 +131,10 @@ class Esp32WifiIo : public WifiIo {
   esp_tls_t *tls_ = nullptr;
   esp_tls_cfg_t tlsConfig_ = {};
 };
-WifiSettings compiledSettings() {
+WifiSettings compiledSettings(const char *ssid, const char *password) {
   WifiSettings s;
-#ifdef BARDBOX_WIFI_SSID
-  s.ssid = BARDBOX_WIFI_SSID;
-#endif
-#ifdef BARDBOX_WIFI_PASSWORD
-  s.password = BARDBOX_WIFI_PASSWORD;
-#endif
+  s.ssid = ssid;
+  s.password = password && *password ? password : nullptr;  // empty: open network
 #ifdef BARDBOX_NETWORK_ENDPOINT
   s.endpoint = BARDBOX_NETWORK_ENDPOINT;
 #endif
@@ -155,9 +151,9 @@ WifiSettings compiledSettings() {
   return s;
 }
 }
-WifiHttpsTransport &defaultEsp32WifiTransport() {
+WifiHttpsTransport &defaultEsp32WifiTransport(const char *ssid, const char *password) {
   static Esp32WifiIo io;
-  static WifiHttpsTransport transport(io, compiledSettings());
+  static WifiHttpsTransport transport(io, compiledSettings(ssid, password));
   return transport;
 }
 }  // namespace bbcore

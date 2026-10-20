@@ -11,6 +11,8 @@
 #include "BardBoxLittleFsStorage.h"
 #include "BardBoxEsp32Wifi.h"
 static bbcore::LittleFsStorage littleFsStorage;
+#include "BardBoxNvsSettingsStore.h"
+static bbcore::NvsSettingsStore nvsSettingsStore;
 #endif
 
 bool BardBoxSensor::addMeasurement(const char *name, const char *unit, MeasurementType type) {
@@ -60,6 +62,7 @@ static void networkTask(void *arg) {
 bool BardBoxInterface::beginWithVersion(const char *firmwareVersion) {
 #if defined(BARDBOX_INTERFACE_RTOS)
   if (!storage_) storage_ = &littleFsStorage;
+  if (!settingsStore_) settingsStore_ = &nvsSettingsStore;
   Serial.begin(bbcore::BardBoxSerial::configuredBaud());
   return beginWithPort(Serial, firmwareVersion, true);
 #elif defined(BARDBOX_HOST_DEMO)
@@ -90,7 +93,20 @@ bool BardBoxInterface::beginWithPort(Stream &port, const char *firmwareVersion, 
 #else
   bootId_ = hostBootId_;  // fixed on hosts so tests are deterministic
 #endif
-  if (!buffer_.setAttribution(BARDBOX_DEVICE_UID, firmwareVersion, bbcore::kWireProtocol)) return false;
+  // Compiled values are defaults; saved settings override them from this boot.
+#if defined(BARDBOX_WIFI_SSID)
+  const char *defaultSsid = BARDBOX_WIFI_SSID;
+#else
+  const char *defaultSsid = "";
+#endif
+#if defined(BARDBOX_WIFI_PASSWORD)
+  const char *defaultPassword = BARDBOX_WIFI_PASSWORD;
+#else
+  const char *defaultPassword = "";
+#endif
+  settings_.begin(settingsStore_, BARDBOX_DEVICE_UID, defaultSsid, defaultPassword);
+  // New records carry this boot's UID; saved records keep their own.
+  if (!buffer_.setAttribution(settings_.active().uid, firmwareVersion, bbcore::kWireProtocol)) return false;
 #if defined(BARDBOX_INTERFACE_RTOS)
   if (!buffer_.begin(millis(), bootId_, storage_, esp_random())) return false;
 #else
@@ -100,13 +116,15 @@ bool BardBoxInterface::beginWithPort(Stream &port, const char *firmwareVersion, 
   bbcore::NetworkSettings networkSettings;
 #if defined(BARDBOX_INTERFACE_RTOS)
   if (!transport_ && networkSettings.enabled) {
-    bbcore::WifiHttpsTransport &wifi = bbcore::defaultEsp32WifiTransport();
+    const bbcore::SettingsValues &active = settings_.active();
+    bbcore::WifiHttpsTransport &wifi = bbcore::defaultEsp32WifiTransport(active.ssid, active.password);
     networkSettings.endpointConfigured = wifi.configured();
     if (wifi.configured()) transport_ = &wifi;
   }
 #endif
   network_.begin(networkSettings, transport_, millis(), mailbox_);
   serial_.begin(port, *this);
+  serial_.useSettings(settings_);
   begun_ = true;
 #if defined(BARDBOX_INTERFACE_RTOS)
   if (startServiceTask && xTaskCreate(serviceTask, "bardbox", 8192, this, 1, nullptr) != pdPASS) {
@@ -136,7 +154,7 @@ void BardBoxInterface::runNetworkStep() {
 }
 
 void BardBoxInterface::status(bbcore::SerialStatus &out) {
-  out.uid = BARDBOX_DEVICE_UID;
+  out.uid = settings_.active().uid;
   out.firmware = firmwareVersion_;
   out.bootId = bootId_;
   out.recordingIntervalS = BARDBOX_RECORDING_INTERVAL_S;

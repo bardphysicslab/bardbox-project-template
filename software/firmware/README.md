@@ -35,6 +35,7 @@ software/firmware/
   lib/BardBoxBuffer/                 recording interval, records, durable FIFO queue and ACK
   lib/BardBoxSerial/                 serial commands and wire forms
   lib/BardBoxNetwork/                Wi-Fi/HTTPS, delivery policy/mailbox and candidate JSON
+  lib/BardBoxSettings/               saved UID and Wi-Fi settings (override config.h, next boot)
   test/host/                         host tests and demo (simulated)
 ```
 
@@ -42,8 +43,14 @@ Build: `pio run -e feather_s3` fails until `FIRMWARE_VERSION` is set in
 `src/main.cpp` ("Please set FIRMWARE_VERSION in main.cpp."); `pio run -e
 feather_s3_m1_test` builds with an explicit test version. Serial commands:
 `INFO`, `HEADER`, `READ` (latest completed record), `READ_LIVE` (latest cached
-readings) and `PING`; `HEADER`, `READ` and `READ_LIVE` use a v2 candidate
-framing pending review (see `lib/BardBoxSerial/README.md`).
+readings), `PING` and the `CONFIG_*` settings commands; `HEADER`, `READ` and
+`READ_LIVE` use a v2 candidate framing pending review (see
+`lib/BardBoxSerial/README.md`).
+
+UID, Wi-Fi SSID and password can be changed over USB serial without a rebuild
+(the flasher's Update settings, or `CONFIG_*`). Saved values override the
+compiled defaults from the next start and survive an ordinary reflash; see
+`lib/BardBoxSettings/README.md`.
 
 The example UID is `bb-prj-air-001`. New UIDs must follow
 `bb-<site>-<type>-<instance>` with 3-letter lowercase site/type codes and a

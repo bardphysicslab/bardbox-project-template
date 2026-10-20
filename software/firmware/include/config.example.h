@@ -21,7 +21,8 @@
 // Identity (BardBoxInterface)
 // ---------------------------------------------------------------------------
 
-// Device UID reported in INFO. "unassigned" is the unprovisioned sentinel.
+// Default device UID. "unassigned" is the unprovisioned sentinel. A UID saved
+// over USB serial (Update settings / CONFIG_*) overrides it from the next start.
 #define BARDBOX_DEVICE_UID "unassigned"
 
 // ---------------------------------------------------------------------------
@@ -35,6 +36,8 @@
 
 // Fill these in only in your ignored local config.h, never in this tracked file.
 // Empty required fields leave delivery unconfigured; they are not working values.
+// SSID and password are defaults: settings saved over USB serial override them
+// from the next start, without a rebuild. Endpoint, CA and token are not.
 #define BARDBOX_WIFI_SSID ""             // Your Wi-Fi network name.
 #define BARDBOX_WIFI_PASSWORD ""         // Your password; empty for an open network.
 #define BARDBOX_NETWORK_ENDPOINT ""      // Full HTTPS upload URL from your receiver.

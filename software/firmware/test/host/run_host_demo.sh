@@ -10,7 +10,7 @@ mkdir -p "$out"
 CXX=${CXX:-c++}
 inc="-I$here/stub -I$fw/src"
 srcs=""
-for lib in BardBoxSerial BardBoxBuffer BardBoxNetwork BardBoxMeasurements BardBoxInterface; do
+for lib in BardBoxSerial BardBoxBuffer BardBoxNetwork BardBoxMeasurements BardBoxSettings BardBoxInterface; do
   inc="$inc -I$fw/lib/$lib/src"
   for f in "$fw/lib/$lib/src"/*.cpp; do [ -e "$f" ] && srcs="$srcs $f"; done
 done

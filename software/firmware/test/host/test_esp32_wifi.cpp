@@ -18,7 +18,7 @@ static void dnsDone() {
  auto cb=pendingDns;pendingDns=nullptr;cb("receiver.invalid",&addr,pendingDnsArg);
 }
 int main() {
- auto &t=bbcore::defaultEsp32WifiTransport();
+ auto &t=bbcore::defaultEsp32WifiTransport(BARDBOX_WIFI_SSID,"");
  assert(t.configured());
  auto body=reinterpret_cast<const uint8_t *>("42");
  assert(t.start(1,body,2,0));
