@@ -9,7 +9,7 @@ sensor evidence.
 From `software/firmware/`:
 
 ```bash
-test/host/run_host_tests.sh   # module checks, durable Buffer checks, FIRMWARE_VERSION build guard
+test/host/run_host_tests.sh   # module checks, durable Buffer checks, FW-M2 review reproductions, version guard
 test/host/run_host_demo.sh    # the unmodified src/main.cpp, then a simulated restart demo
 ```
 

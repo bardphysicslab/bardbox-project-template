@@ -167,8 +167,8 @@ void BardBoxSerial::writeInfo(SerialLine &line) {
   const uint8_t sensors = source_->sensorCount();
   if (sensors == 0) line.text("none");
   for (uint8_t s = 0; s < sensors; ++s) line.text(s ? "," : "").text(source_->sensorName(s));
-  line.text(" wire=v2-candidate boot=").hex32(st.bootId).text(" recording_s=").uint(st.recordingIntervalS);
-  Record r;
+  line.text(" wire=").text(kWireProtocol).text(" boot=").hex32(st.bootId).text(" recording_s=").uint(st.recordingIntervalS);
+  Record &r = record_;
   if (source_->latestRecord(r)) {
     line.text(" record=").uint(r.seq).text(" record_ms=").uint(r.capturedMs);
   } else {
@@ -179,7 +179,9 @@ void BardBoxSerial::writeInfo(SerialLine &line) {
   line.text(" evicted=").uint(st.evicted).text(" pending_ram=").uint(st.pendingRam);
   line.text(" lost_ram=").uint(st.lostRam).text(" write_failures=").uint(st.writeFailures);
   line.text(" interrupted=").uint(st.interrupted).text(" quarantined=").uint(st.quarantined);
-  line.text(" skipped=").uint(st.skippedBoundaries);
+  line.text(" skipped=").uint(st.skippedBoundaries).text(" queue=").text(st.queueState);
+  line.text(" hidden=").uint(st.hidden).text(" unreadable=").uint(st.unreadable);
+  line.text(" meta_rebuilt=").uint(st.metaRebuilt);
   line.text(" net=").text(st.network).text(" acquired_time=unknown reg_errors=").uint(st.registrationErrors);
   line.end();
 }
@@ -198,7 +200,7 @@ void BardBoxSerial::writeHeader(SerialLine &line) {
 // Latest completed record: DAT,v2,<record>,<boot>,<captured_ms>,<value|!code>...
 // Healthy channels keep their values; a bad channel shows its code.
 void BardBoxSerial::writeRead(SerialLine &line) {
-  Record r;
+  Record &r = record_;
   if (source_->channelCount() == 0) {
     line.text("ERR NO_SENSOR").end();
     return;

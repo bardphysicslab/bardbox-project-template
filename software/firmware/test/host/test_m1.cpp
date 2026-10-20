@@ -138,7 +138,8 @@ static void test_records_vs_live() {
                "OK INFO uid=unassigned fw=0.0.0-host-test sensors=bme280 wire=v2-candidate "
                "boot=5eed0001 recording_s=60 record=3 record_ms=181000 storage=host durable=yes stored=3 "
                "capacity=256 evicted=0 pending_ram=0 lost_ram=0 write_failures=0 interrupted=0 "
-               "quarantined=0 skipped=0 net=not_implemented acquired_time=unknown reg_errors=0");
+               "quarantined=0 skipped=0 queue=ok hidden=0 unreadable=0 meta_rebuilt=0 "
+               "net=not_implemented acquired_time=unknown reg_errors=0");
   (void)rec;
 }
 

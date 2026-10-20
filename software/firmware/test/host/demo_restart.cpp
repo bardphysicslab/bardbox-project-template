@@ -26,12 +26,15 @@ static std::string ask(BardBoxInterface &box, HostStream &io, const char *cmd) {
 
 static void show(const char *label, const std::string &s) { printf("%-28s %s\n", label, s.c_str()); }
 
+static bbcore::Record shown;
+
 static void head(BardBoxInterface &box, const char *label) {
-  bbcore::Record r;
-  uint32_t token = 0;
-  if (box.bufferForDelivery().peekOldest(r, token))
-    printf("%-28s token=%lu boot=%08lx record=%lu humidity=%g\n", label, (unsigned long)token,
-           (unsigned long)r.bootId, (unsigned long)r.seq, r.channels[0].value.f);
+  bbcore::QueueToken token;
+  if (box.bufferForDelivery().peekOldest(shown, token))
+    printf("%-28s token=%lu/%lu boot=%08lx record=%lu uid=%s %s.%s=%g %s\n", label,
+           (unsigned long)token.generation, (unsigned long)token.seq, (unsigned long)shown.bootId,
+           (unsigned long)shown.seq, shown.attribution.uid, shown.schema[0].sensor, shown.schema[0].name,
+           shown.channels[0].value.f, shown.schema[0].unit);
   else
     printf("%-28s (empty)\n", label);
 }
@@ -66,8 +69,12 @@ int main() {
     }
     show("INFO", ask(box, io, "INFO"));
     head(box, "oldest");
-    printf("%-28s %s\n", "ack(token 2)", ackName(box.bufferForDelivery().acknowledge(2)));
-    printf("%-28s %s\n", "ack(token 1)", ackName(box.bufferForDelivery().acknowledge(1)));
+    bbcore::QueueToken token;
+    box.bufferForDelivery().peekOldest(shown, token);
+    bbcore::QueueToken wrong = token;
+    wrong.seq = 2;
+    printf("%-28s %s\n", "ack(seq 2, not the head)", ackName(box.bufferForDelivery().acknowledge(wrong)));
+    printf("%-28s %s\n", "ack(exact head token)", ackName(box.bufferForDelivery().acknowledge(token)));
     storage.failWrites = 1;  // next record cannot be written
     bme.publish(44.0f);
     t += 60000;
@@ -99,12 +106,11 @@ int main() {
     }
     show("after 4 more records", ask(box, io, "INFO"));
     printf("delivery order:\n");
-    bbcore::Record r;
-    uint32_t token = 0;
-    while (box.bufferForDelivery().peekOldest(r, token)) {
-      printf("  token=%lu boot=%08lx record=%lu humidity=%g -> %s\n", (unsigned long)token,
-             (unsigned long)r.bootId, (unsigned long)r.seq, r.channels[0].value.f,
-             ackName(box.bufferForDelivery().acknowledge(token)));
+    bbcore::QueueToken token;
+    while (box.bufferForDelivery().peekOldest(shown, token)) {
+      printf("  token=%lu/%lu boot=%08lx record=%lu humidity=%g -> %s\n", (unsigned long)token.generation,
+             (unsigned long)token.seq, (unsigned long)shown.bootId, (unsigned long)shown.seq,
+             shown.channels[0].value.f, ackName(box.bufferForDelivery().acknowledge(token)));
     }
   }
   return 0;

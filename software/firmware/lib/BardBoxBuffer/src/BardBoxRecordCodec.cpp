@@ -28,6 +28,12 @@ struct Writer {
   void u16(uint16_t v) { u8(v & 0xFF); u8(v >> 8); }
   void u32(uint32_t v) { for (int i = 0; i < 4; ++i) u8((v >> (8 * i)) & 0xFF); }
   void u64(uint64_t v) { for (int i = 0; i < 8; ++i) u8((v >> (8 * i)) & 0xFF); }
+  void str(const char *s, size_t max) {
+    size_t n = strlen(s);
+    if (n > max) { ok = false; return; }
+    u8(static_cast<uint8_t>(n));
+    for (size_t i = 0; i < n; ++i) u8(static_cast<uint8_t>(s[i]));
+  }
 };
 
 struct Reader {
@@ -43,6 +49,13 @@ struct Reader {
   uint16_t u16() { uint16_t v = u8(); return v | (static_cast<uint16_t>(u8()) << 8); }
   uint32_t u32() { uint32_t v = 0; for (int i = 0; i < 4; ++i) v |= static_cast<uint32_t>(u8()) << (8 * i); return v; }
   uint64_t u64() { uint64_t v = 0; for (int i = 0; i < 8; ++i) v |= static_cast<uint64_t>(u8()) << (8 * i); return v; }
+  // Reads a length-prefixed string into out (capacity cap, including NUL).
+  void str(char *out, size_t cap) {
+    const uint8_t n = u8();
+    if (n >= cap) { ok = false; return; }
+    for (uint8_t i = 0; i < n; ++i) out[i] = static_cast<char>(u8());
+    out[ok ? n : 0] = '\0';
+  }
 };
 
 constexpr size_t kHeaderBytes = 11;  // magic 4, version 1, length 2, crc 4
@@ -52,13 +65,23 @@ constexpr size_t kHeaderBytes = 11;  // magic 4, version 1, length 2, crc 4
 size_t encodeRecordFrame(const Record &r, uint8_t *out, size_t cap) {
   if (cap < kHeaderBytes || r.channelCount > kMaxChannels) return 0;
   Writer w(out + kHeaderBytes, cap - kHeaderBytes);
-  w.u8(kPayloadSchemaM1Candidate);
+  w.u8(kPayloadSchemaCandidate);
+  w.u32(r.queueGeneration);
+  w.u32(r.queueSeq);
   w.u32(r.bootId);
   w.u32(r.seq);
   w.u32(r.dueMs);
   w.u32(r.capturedMs);
+  w.str(r.attribution.uid, sizeof r.attribution.uid - 1);
+  w.str(r.attribution.firmware, sizeof r.attribution.firmware - 1);
+  w.str(r.attribution.protocol, sizeof r.attribution.protocol - 1);
   w.u8(r.channelCount);
   for (uint8_t c = 0; c < r.channelCount; ++c) {
+    const ChannelSchema &sc = r.schema[c];
+    w.str(sc.sensor, sizeof sc.sensor - 1);
+    w.str(sc.name, sizeof sc.name - 1);
+    w.str(sc.unit, sizeof sc.unit - 1);
+    w.u8(static_cast<uint8_t>(sc.type));
     const RecordChannel &ch = r.channels[c];
     w.u8(static_cast<uint8_t>(ch.value.kind));
     w.u8(static_cast<uint8_t>(ch.value.status));
@@ -90,15 +113,28 @@ DecodeResult decodeRecordFrame(const uint8_t *data, size_t len, Record &out) {
   for (int i = 0; i < 4; ++i) crc |= static_cast<uint32_t>(data[7 + i]) << (8 * i);
   if (crc32(data + kHeaderBytes, payload) != crc) return DecodeResult::BadChecksum;
   Reader r(data + kHeaderBytes, payload);
-  if (r.u8() != kPayloadSchemaM1Candidate) return DecodeResult::UnsupportedSchema;
-  Record rec;
+  if (r.u8() != kPayloadSchemaCandidate) return DecodeResult::UnsupportedSchema;
+  static Record rec;  // large; decoding is single-threaded (service task)
+  rec = Record();
+  rec.queueGeneration = r.u32();
+  rec.queueSeq = r.u32();
   rec.bootId = r.u32();
   rec.seq = r.u32();
   rec.dueMs = r.u32();
   rec.capturedMs = r.u32();
+  r.str(rec.attribution.uid, sizeof rec.attribution.uid);
+  r.str(rec.attribution.firmware, sizeof rec.attribution.firmware);
+  r.str(rec.attribution.protocol, sizeof rec.attribution.protocol);
   rec.channelCount = r.u8();
-  if (rec.channelCount > kMaxChannels) return DecodeResult::BadFrame;
+  if (!r.ok || rec.channelCount > kMaxChannels) return DecodeResult::BadFrame;
   for (uint8_t c = 0; c < rec.channelCount; ++c) {
+    ChannelSchema &sc = rec.schema[c];
+    r.str(sc.sensor, sizeof sc.sensor);
+    r.str(sc.name, sizeof sc.name);
+    r.str(sc.unit, sizeof sc.unit);
+    const uint8_t type = r.u8();
+    if (type > static_cast<uint8_t>(ValueKind::Boolean)) return DecodeResult::BadFrame;
+    sc.type = static_cast<ValueKind>(type);
     RecordChannel &ch = rec.channels[c];
     const uint8_t kind = r.u8(), status = r.u8(), flags = r.u8();
     if (kind > static_cast<uint8_t>(ValueKind::Boolean) ||

@@ -112,5 +112,6 @@ class BardBoxInterface : private bbcore::SerialDataSource {
 // file declares but never defines or calls it.
 #if !defined(BARDBOX_INTERFACE_IMPLEMENTATION)
 static_assert(sizeof(FIRMWARE_VERSION) > 1, "Please set FIRMWARE_VERSION in main.cpp.");
+static_assert(sizeof(FIRMWARE_VERSION) <= 33, "FIRMWARE_VERSION must be at most 32 characters.");
 inline bool BardBoxInterface::begin() { return beginWithVersion(FIRMWARE_VERSION); }
 #endif

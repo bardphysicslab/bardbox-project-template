@@ -76,12 +76,17 @@ bool BardBoxInterface::beginWithPort(Stream &port, const char *firmwareVersion, 
 #else
   bootId_ = hostBootId_;  // fixed on hosts so tests are deterministic
 #endif
-  buffer_.begin(millis(), bootId_, storage_);
+  buffer_.setAttribution(BARDBOX_DEVICE_UID, firmwareVersion, bbcore::kWireProtocol);
+#if defined(BARDBOX_INTERFACE_RTOS)
+  buffer_.begin(millis(), bootId_, storage_, esp_random());
+#else
+  buffer_.begin(millis(), bootId_, storage_, bootId_);
+#endif
   network_.begin();
   serial_.begin(port, *this);
   begun_ = true;
 #if defined(BARDBOX_INTERFACE_RTOS)
-  if (startServiceTask && xTaskCreate(serviceTask, "bardbox", 6144, this, 1, nullptr) != pdPASS) {
+  if (startServiceTask && xTaskCreate(serviceTask, "bardbox", 8192, this, 1, nullptr) != pdPASS) {
     begun_ = false;  // no running service, so no Serial is promised
     return false;
   }
@@ -114,6 +119,10 @@ void BardBoxInterface::status(bbcore::SerialStatus &out) {
   out.interrupted = b.interrupted;
   out.quarantined = b.quarantined;
   out.skippedBoundaries = b.skippedBoundaries;
+  out.queueState = bbcore::queueStateName(b.state);
+  out.hidden = b.hidden;
+  out.unreadable = b.unreadable;
+  out.metaRebuilt = b.metaRebuilt;
   out.network = network_.statusName();
   out.registrationErrors = measurements_.registrationErrors();
 }

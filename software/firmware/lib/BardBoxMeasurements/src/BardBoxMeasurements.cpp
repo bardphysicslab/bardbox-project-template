@@ -174,6 +174,16 @@ uint8_t BardBoxMeasurements::snapshotChannels(RecordChannel *out, uint32_t &capt
   return channelCount_;
 }
 
+void BardBoxMeasurements::describeChannels(ChannelSchema *out) {
+  for (uint8_t c = 0; c < channelCount_; ++c) {
+    out[c] = ChannelSchema();
+    strcpy(out[c].sensor, sensors_[channels_[c].sensor].name);
+    strcpy(out[c].name, channels_[c].name);
+    strcpy(out[c].unit, channels_[c].unit);
+    out[c].type = kindOf(channels_[c].type);
+  }
+}
+
 void BardBoxMeasurements::lock() {
 #if defined(BARDBOX_MEASUREMENTS_RTOS)
   if (mutex_) xSemaphoreTake(static_cast<SemaphoreHandle_t>(mutex_), portMAX_DELAY);

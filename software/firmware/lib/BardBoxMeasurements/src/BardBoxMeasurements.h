@@ -61,6 +61,7 @@ class BardBoxMeasurements : public SnapshotSource {
   PublishOutcome publish(uint8_t sensor, const ValueArg *args, size_t count);
 
   uint8_t snapshotChannels(RecordChannel *out, uint32_t &capturedMs) override;
+  void describeChannels(ChannelSchema *out) override;
 
   uint8_t sensorCount() const { return sensorCount_; }
   uint8_t channelCount() const { return channelCount_; }

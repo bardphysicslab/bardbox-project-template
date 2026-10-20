@@ -46,6 +46,10 @@ struct SerialStatus {
   uint32_t interrupted = 0;
   uint32_t quarantined = 0;
   uint32_t skippedBoundaries = 0;
+  const char *queueState = "ok";
+  uint32_t hidden = 0;
+  uint32_t unreadable = 0;
+  uint32_t metaRebuilt = 0;
   const char *network = "";
   uint8_t registrationErrors = 0;
 };
@@ -65,6 +69,9 @@ class SerialDataSource {
 };
 
 enum class SerialCommand : uint8_t { Empty, Info, Header, Read, ReadLive, Ping, Unknown };
+
+// Wire protocol name stamped on records; a candidate pending review.
+constexpr const char *kWireProtocol = "v2-candidate";
 
 // Case-insensitive; ignores surrounding spaces.
 SerialCommand parseSerialCommand(const char *line);
@@ -117,6 +124,7 @@ class BardBoxSerial {
   size_t outLen_ = 0;
   size_t outPos_ = 0;
   uint32_t stalled_ = 0;
+  Record record_;  // scratch for READ/INFO; keeps large records off the stack
 };
 
 }  // namespace bbcore

@@ -13,3 +13,5 @@
 #ifndef BARDBOX_DEVICE_UID
 #define BARDBOX_DEVICE_UID "unassigned"
 #endif
+
+static_assert(sizeof(BARDBOX_DEVICE_UID) <= 33, "BARDBOX_DEVICE_UID must be at most 32 characters");

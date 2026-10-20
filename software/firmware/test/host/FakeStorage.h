@@ -16,6 +16,8 @@ class FakeStorage : public bbcore::StorageAdapter {
   int failWrites = 0;   // fail the next N writes (nothing written)
   int failRenames = 0;  // fail the next N renames (nothing renamed)
   int failRemoves = 0;  // fail the next N removes (file stays)
+  int failWriteAt = 0;   // fail only the Nth write from now (1 = next)
+  std::string failRenameOf;  // always fail renaming this path
   int mounts = 0;
   bool formatted = false;  // must never become true
 
@@ -33,6 +35,7 @@ class FakeStorage : public bbcore::StorageAdapter {
       --failWrites;
       return false;
     }
+    if (failWriteAt > 0 && --failWriteAt == 0) return false;
     files[path].assign(data, data + len);
     return true;
   }
@@ -48,6 +51,7 @@ class FakeStorage : public bbcore::StorageAdapter {
       --failRenames;
       return false;
     }
+    if (!failRenameOf.empty() && failRenameOf == from) return false;
     auto it = files.find(from);
     if (it == files.end()) return false;
     files[to] = it->second;
