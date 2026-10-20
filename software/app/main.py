@@ -213,6 +213,27 @@ def latest_readings() -> List[Dict[str, Any]]:
     return [normalize_driver_reading(driver) for driver in DRIVERS]
 
 
+def receiver_flag_enabled() -> bool:
+    # Development-only diagnostic receiver; unknown values fail closed at startup.
+    value = os.environ.get("BARDBOX_TEST_RECEIVER", "")
+    if value not in ("", "0", "1"):
+        raise ValueError("BARDBOX_TEST_RECEIVER must be unset, 0 or 1")
+    return value == "1"
+
+
+if receiver_flag_enabled():
+    from software.app.local_receiver import Registry, create_local_receiver_router
+
+    app.include_router(create_local_receiver_router(
+        Registry(
+            channels={driver_uid(d): tuple(d.get_capabilities().get("channels", {})) for d in DRIVERS},
+            aliases=dict(UID_ALIASES),
+            uid_syntax_ok=is_valid_node_uid,
+        ),
+        templates,
+    ))
+
+
 @app.get("/")
 def landing(request: Request):
     return templates.TemplateResponse(
