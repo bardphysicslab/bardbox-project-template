@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local test receiver</title>
+  <link rel="stylesheet" href="/static/bardbox.css">
+</head>
+<body>
+  <main>
+    <h1>Local test receiver</h1>
+    <p><strong>Development diagnostic only.</strong> Format: {{ format_label }}.
+      Results are kept in memory (last {{ max_results }}), never archived, never shown
+      in the live readings and never a durable ACK. The protocol version is
+      <strong>unchecked</strong>; a configured UID is a claim, not authentication.</p>
+    <p>Reload the page to see new results.</p>
+
+    {% if not results %}
+      <p>No samples received yet.</p>
+    {% endif %}
+
+    {% for item in results %}
+      <section>
+        <h2>{{ item.result }} (HTTP {{ item.http_status }}), received {{ item.received_at }}</h2>
+        <dl>
+          <dt>Claimed UID</dt>
+          <dd>{{ item.identity.claimed_uid if item.identity.claimed_uid else "(missing or invalid, not shown)" }}</dd>
+          <dt>Identity</dt>
+          <dd>syntax valid: {{ item.identity.uid_syntax_valid }};
+            configured locally: {{ item.identity.uid_configured }};
+            authenticated: {{ item.identity.authenticated }}</dd>
+          {% if item.record %}
+            <dt>Measurement time</dt>
+            <dd>{{ item.record.timestamp if item.record.timestamp else "unknown" }}{% if item.record.extended.time_fault %} ({{ item.record.extended.time_fault }}){% endif %}</dd>
+            <dt>Firmware / protocol</dt>
+            <dd>{{ item.record.extended.firmware_version }} / {{ item.record.extended.protocol_version }} (protocol {{ item.record.extended.protocol_check }})</dd>
+            {% if item.record.extended.record_id %}
+              <dt>Record ID</dt>
+              <dd>{{ item.record.extended.record_id }}</dd>
+            {% endif %}
+          {% endif %}
+        </dl>
+
+        {% if item.record %}
+          <table>
+            <thead><tr><th>Channel</th><th>Value</th><th>Fault</th></tr></thead>
+            <tbody>
+            {% for channel, value in item.record.data.items() %}
+              <tr>
+                <td>{{ channel }}</td>
+                <td>{{ "—" if value is none else value }}</td>
+                <td>{{ item.record.extended.channel_faults[channel].code if channel in item.record.extended.channel_faults else "" }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% if item.ignored_channel_count %}
+            <p>Ignored unregistered channels ({{ item.ignored_channel_count }}): {{ item.ignored_channels | join(", ") }}</p>
+          {% endif %}
+        {% endif %}
+
+        {% if item.errors %}
+          <p>Errors:</p>
+          <ul>
+          {% for error in item.errors %}
+            <li><code>{{ error.code }}</code> at <code>{{ error.path }}</code></li>
+          {% endfor %}
+          </ul>
+        {% endif %}
+      </section>
+    {% endfor %}
+  </main>
+</body>
+</html>
