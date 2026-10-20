@@ -13,6 +13,25 @@ software/firmware/
   lib/
 ```
 
+Starting layout ([FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824),
+October 20, 2026). Each folder has a role README. Folders marked *role only*
+contain no code yet; the facade name `BardBoxInterface` is accepted, while
+other names and all interfaces are proposals maintained in
+[`bardbox/docs`](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-blueprint.md).
+Start in `src/main.cpp`; split a larger project's `src/` later, only when needed.
+
+```text
+software/firmware/
+  platformio.ini            build environment (unchanged)
+  src/main.cpp              start file; existing simulator (unchanged)
+  include/                  standard project headers; two existing helpers
+  lib/BardBoxInterface/     beginner facade; the only BardBox entry (role only)
+  lib/BardBoxSerial/        private core: serial owner (role only)
+  lib/BardBoxNetwork/       private core: network delivery owner (role only)
+  lib/BardBoxBuffer/        private core: durable record queue (role only)
+  test/                     host and integration tests (role only)
+```
+
 The example node implements the compact BardBox device protocol:
 
 - `INFO`
@@ -48,8 +67,9 @@ deployed hardware. Publish the resulting health state through additive
 
 ## Local configuration
 
-When a firmware variant needs per-device settings, use `src/config.example.h`
-(tracked placeholders) and `src/config.h` (ignored local values). Rename an existing
+When a firmware variant needs per-device settings, use `include/config.example.h`
+(tracked safe example) and `include/config.h` (ignored local values); see
+[`include/README.md`](include/README.md#configuration-headers). Rename an existing
 private `secrets.h` locally without replacing its values. This template's simple
 simulator currently has no private configuration header to rename. Do not add
 credentials to it merely to match another project's configuration needs.
