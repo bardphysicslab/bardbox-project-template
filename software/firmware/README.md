@@ -25,6 +25,8 @@ software/firmware/
   platformio.ini            build environment (unchanged)
   src/main.cpp              start file; existing simulator (unchanged)
   include/                  standard project headers; two existing helpers
+  include/config.example.h  tracked safe config example (not consumed yet)
+  include/config.h          your ignored local copy (not consumed yet)
   lib/BardBoxInterface/     beginner facade; the only BardBox entry (role only)
   lib/BardBoxSerial/        private core: serial owner (role only)
   lib/BardBoxNetwork/       private core: network delivery owner (role only)
@@ -67,12 +69,13 @@ deployed hardware. Publish the resulting health state through additive
 
 ## Local configuration
 
-When a firmware variant needs per-device settings, use `include/config.example.h`
-(tracked safe example) and `include/config.h` (ignored local values); see
-[`include/README.md`](include/README.md#configuration-headers). Rename an existing
-private `secrets.h` locally without replacing its values. This template's simple
-simulator currently has no private configuration header to rename. Do not add
-credentials to it merely to match another project's configuration needs.
+Settings live in one place: tracked `include/config.example.h` (safe example
+with Serial, Network and Buffer sections) and your ignored local copy
+`include/config.h`, created once with `cp -n include/config.example.h include/config.h`
+and never overwritten; see [`include/README.md`](include/README.md#configuration-headers).
+Neither header is consumed by the current simulator yet. Rename an existing
+private `secrets.h` locally without replacing its values. Never add credentials
+to the tracked example.
 
 Use `hardware/ecad` for KiCad and `hardware/mcad` for mechanical/enclosure files.
 Keep separate firmware projects under `software/firmware/<project>`; a single

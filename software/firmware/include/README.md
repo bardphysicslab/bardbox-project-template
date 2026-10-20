@@ -4,25 +4,36 @@ Standard PlatformIO project include folder: headers shared by this project's
 `src/` files. It is not a BardBox module, and whether future helpers move into
 `lib/` modules is not settled.
 
-It currently holds two helpers, and is the documented home for optional
-[configuration headers](#configuration-headers). Both helpers are policy and state trackers only: they
+It holds two helpers and the tracked
+[configuration example](#configuration-headers) `config.example.h`. Both helpers are policy and state trackers only: they
 perform no hardware, sensor or network I/O, and the current simulator
 `main.cpp` does not use them.
 
 ## Configuration headers
 
-Following the [repository layout](https://github.com/bardphysicslab/bardbox/blob/main/docs/repository-layout.md#firmware-configuration) rule, a firmware variant that needs
-per-device build values uses:
+- `include/config.example.h` (tracked): safe example with labelled Serial,
+  Network and Buffer sections and units; never real credentials.
+- `include/config.h` (ignored by the root `.gitignore` pattern `**/config.h`):
+  your local copy. Create it once with
+  `cp -n include/config.example.h include/config.h` (from `software/firmware/`)
+  and edit only the copy; never overwrite an existing `config.h`.
 
-- `include/config.example.h`: tracked, safe example values and documented
-  defaults; never real credentials.
-- `include/config.h`: ignored private local values (the root `.gitignore`
-  pattern `**/config.h` already covers it).
+**Not consumed yet.** No source file includes either header. The simulator
+`src/main.cpp` includes only `Arduino.h` and hardcodes its values, including
+`Serial.begin(115200)`, so editing `config.h` changes nothing today. C++ uses a
+header only through an explicit `#include`, and the ignore rule is independent
+of that.
 
-The example header is documentation: it is not activated or compiled
-automatically, and C++ uses a header only through an explicit `#include`. The
-ignore rule is independent of either. The current simulator uses no
-configuration, so neither file exists. Do not add one just to fill the tree.
+| Section | Current contents | Status |
+| --- | --- | --- |
+| Serial | `BARDBOX_SERIAL_BAUD 115200` (bit/s) | Matches the simulator's hardcoded value; not read by it |
+| Network | Comments only: Wi-Fi on by default (agreed) | Not implemented; no settings defined |
+| Buffer | Comments only: recording on by default (agreed) | Not implemented; no settings defined |
+
+Wi-Fi SSID, password, endpoint and upload credentials are private: they go
+only in the local `config.h` or runtime provisioning and have no defaults.
+`platformio.ini` `monitor_speed` sets only the computer's serial monitor; it
+must match the firmware baud but does not set `Serial.begin`.
 
 Build values (pins, compiled drivers, partition layout, firmware version) are
 separate from supported operational fields (UID, Wi-Fi, endpoint, upload
