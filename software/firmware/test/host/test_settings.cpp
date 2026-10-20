@@ -101,8 +101,9 @@ static void test_schema_and_defaults() {
            "CONFIG_SCHEMA,version=1,encoding=hex,activation=next_boot,"
            "fields=uid:1:32:public;wifi_ssid:0:32:public;wifi_password:8:63:secret:empty_open");
   CHECK_EQ(d.ask("CONFIG_GET"),
-           "CONFIG,version=1,store=none,revision=0,uid=unassigned,wifi_ssid=-,wifi_password=empty,"
-           "active_uid=unassigned,active_wifi_ssid=-,active_wifi_password=empty,pending=0,activation=next_boot");
+           "CONFIG,version=1,store=none,revision=0,uid=unassigned,wifi_ssid=" + hex("BardWireless") +
+           ",wifi_password=empty,active_uid=unassigned,active_wifi_ssid=" + hex("BardWireless") +
+           ",active_wifi_password=empty,pending=0,activation=next_boot");  // no config.h: open BardWireless
   CHECK_EQ(d.ask("config_get"), d.ask("CONFIG_GET"));  // command word is case-insensitive
 }
 
@@ -227,7 +228,7 @@ static void test_transaction_rules() {
   CHECK_EQ(d.ask("CONFIG_BEGIN 0"), "CONFIG_BEGIN_OK,revision=0");
   CHECK_EQ(d.ask("CONFIG_SET uid " + hex("bb-only-uid")), "CONFIG_SET_OK,field=uid");
   CHECK_EQ(d.ask("CONFIG_COMMIT"), "CONFIG_COMMIT_OK,revision=1,activation=next_boot");
-  CHECK_EQ(field(d.ask("CONFIG_GET"), "wifi_ssid"), "-");
+  CHECK_EQ(field(d.ask("CONFIG_GET"), "wifi_ssid"), hex("BardWireless"));  // the default, kept
   // Without a store nothing can be saved, and the tool is told so.
   Device none(nullptr, nullptr);
   CHECK_EQ(field(none.ask("CONFIG_GET"), "store"), "unavailable");

@@ -34,6 +34,11 @@ $CXX -std=c++11 -Wall -Wextra -Werror -DBARDBOX_BUFFER_CAPACITY_RECORDS=4 \
   "$fw/lib/BardBoxBuffer/src/BardBoxRecordCodec.cpp" "$here/review_m2_repro.cpp" -o "$out/review_m2_repro"
 "$out/review_m2_repro"
 
+# An explicit project Wi-Fi setting, even empty, wins over the BardWireless default.
+printf '#include "BardBoxNetworkConfig.h"\nstatic_assert(sizeof(BARDBOX_WIFI_SSID) == 1, "project SSID not respected");\nint main(){}\n' > "$out/wifi_default.cpp"
+$CXX -std=c++11 -fsyntax-only -DBARDBOX_WIFI_SSID='""' $inc "$out/wifi_default.cpp"
+echo "wifi default: explicit project BARDBOX_WIFI_SSID is respected"
+
 # The version guard must stop a build with no or an empty FIRMWARE_VERSION.
 for body in '' '#define FIRMWARE_VERSION ""'; do
   printf '%s\n#include <BardBoxInterface.h>\nint main(){BardBoxInterface b; return b.begin();}\n' "$body" > "$out/version_guard.cpp"

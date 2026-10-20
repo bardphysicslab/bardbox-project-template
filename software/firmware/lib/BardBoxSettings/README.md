@@ -7,7 +7,7 @@ between saved and active values.
 | Contract | Overview |
 | --- | --- |
 | Responsibility | Validates and saves one settings record; loads it at start; reports saved (next boot) and active (this boot) values |
-| Defaults and overrides | Compiled values (`BARDBOX_DEVICE_UID`, `BARDBOX_WIFI_SSID`, `BARDBOX_WIFI_PASSWORD` in `include/config.h`) are defaults. A saved record overrides all three. Invalid compiled defaults are not used (`unassigned`, no Wi-Fi) |
+| Defaults and overrides | Compiled values (`BARDBOX_DEVICE_UID`, `BARDBOX_WIFI_SSID`, `BARDBOX_WIFI_PASSWORD` in `include/config.h`; without them `unassigned` and the open `BardWireless` network) are defaults. A saved record overrides all three. Invalid compiled defaults are not used (`unassigned`, no Wi-Fi) |
 | Activation | Next start. Active values never change while running; no automatic restart |
 | Fields | `uid`: 1-32 of `[A-Za-z0-9_.-]` (DB1 syntax, limited by the 32-character record attribution); `wifi_ssid`: 0-32 bytes, no control characters, empty = no Wi-Fi; `wifi_password`: empty (open network) or 8-63 bytes, no control characters. An empty SSID needs an empty password. Naming conventions (`bb-<site>-<type>-<instance>`) and global uniqueness are the registry's, not checked here |
 | Update | `beginUpdate(revision)` (must match the saved revision), `setField`, `commit`, `abort`. A refused field or value ends the update; idle updates expire after 60 s; fields not sent keep their saved or default value |
