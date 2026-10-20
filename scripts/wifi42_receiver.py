@@ -7,6 +7,9 @@ No file storage, production ingestion or credentials in logs. A 204 accepts only
 this disposable test record and permits the test node to remove it from its queue.
 """
 import argparse
+from datetime import datetime, timezone
+from html import escape
+from threading import Lock
 import hmac
 import json
 import os
@@ -27,6 +30,47 @@ def is_wifi42(payload):
             and channel.get("unit") == "1" and channel.get("status") == "valid"
             and type(value) in (int, float) and value == 42)
 
+class DemoState:
+    """Only synthetic acceptance counters, never arbitrary payload data."""
+    def __init__(self):
+        self.lock = Lock()
+        self.count = 0
+        self.arrived = None
+
+    def accept(self):
+        with self.lock:
+            self.count += 1
+            self.arrived = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    def snapshot(self):
+        with self.lock:
+            return self.count, self.arrived
+
+
+def viewing_page(count, arrived):
+    value = "42" if count else "—"
+    arrival = escape(arrived) if arrived else "No upload received yet"
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="3"><title>BardBox · 42 demo</title>
+<style>
+body{{margin:0;background:#f3f5f0;color:#173528;font:18px system-ui,sans-serif}}
+main{{max-width:640px;margin:8vh auto;padding:32px}}
+article{{background:white;border:1px solid #ccd8cb;border-radius:20px;padding:32px}}
+h1{{font-size:28px;margin:0 0 8px}} .value{{font-size:112px;font-weight:650;margin:12px 0}}
+dt{{color:#526357;margin-top:20px}}dd{{margin:4px 0;overflow-wrap:anywhere}}
+small,p{{color:#526357;line-height:1.5}} .tag{{font-size:14px;letter-spacing:.08em}}
+</style></head><body><main><p class="tag">BARDBOX / WI-FI DEMO</p>
+<article><h1>The answer</h1><p>Latest accepted demo reading</p>
+<div class="value">{value}</div><dl><dt>Last arrival</dt><dd>{arrival}</dd>
+<dt>Accepted uploads this session</dt><dd>{count}</dd></dl></article>
+<p>Refreshes every 3 seconds. Arrival time is when this Mac received the upload,
+not when the sensor measured it.</p>
+<small>Synthetic data · No archive · Count includes retries and queued records.
+The display resets when the receiver restarts.</small></main></body></html>""".encode("utf-8")
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_args):
         pass  # never log Authorization, query strings, or arbitrary request text
@@ -38,6 +82,21 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("Connection", "close")
         self.end_headers()
+        self.close_connection = True
+
+    def do_GET(self):
+        if self.path not in ("/", "/demo/wifi42"):
+            return self.reply(404)
+        body = viewing_page(*self.server.demo_state.snapshot())
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.wfile.write(body)
         self.close_connection = True
 
     def do_POST(self):
@@ -64,6 +123,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(400)
         if not is_wifi42(payload):
             return self.reply(422)
+        self.server.demo_state.accept()
         print("Received synthetic demo.answer = 42 (volatile diagnostic acceptance only)", flush=True)
         self.reply(204)
 
@@ -83,6 +143,7 @@ def main():
     context.load_cert_chain(args.cert, args.key)
     with ThreadingHTTPServer((args.bind, args.port), Handler) as server:
         server.demo_token = token
+        server.demo_state = DemoState()
         server.socket = context.wrap_socket(server.socket, server_side=True)
         print("Synthetic wifi42 receiver ready; no archive storage. Stop with Ctrl-C.", flush=True)
         try:
