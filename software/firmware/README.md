@@ -62,11 +62,14 @@ New firmware may reuse these sensor- and transport-agnostic headers:
 - `include/BardBoxSensorValueRule.h`: optional per-measurement value check
   (finite, min/max, maximum change and rate of change); the rule comes from the
   sensor or measurement definition.
-- `include/BardBoxI2CRecovery.h`: opt-in I2C bus restart above `Wire.h`; it
-  restarts on default pins and clock, so custom pins/clock are not preserved.
+- `include/BardBoxI2CRecovery.h`: opt-in I2C bus restart above `Wire.h`. It
+  does not explicitly restore custom pins or clock, so their preservation is
+  not guaranteed; review the core's behavior or supply a restore hook.
 
-They are policy/state helpers, not complete networking or sensor drivers. A
-Web Node still must persist before upload, retry oldest-first, delete only after
+The health and transport-recovery trackers and the value check are
+state/value helpers that perform no I/O; the I2C helper is the only one that
+acts on hardware, and only when a project calls it. None of them is a complete
+networking or sensor driver. A Web Node still must persist before upload, retry oldest-first, delete only after
 a `2xx` acknowledgement, and keep sampling separate from uploads. A restart
 hook is optional and must only be enabled after it has been tested on the
 deployed hardware. Publish the resulting health state through additive

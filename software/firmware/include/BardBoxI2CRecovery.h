@@ -13,10 +13,11 @@ struct I2CRecoveryConfig {
 // Additive helper: it does not replace or subclass Wire.h. Projects opt in by
 // calling this only after their health policy requests transport recovery.
 //
-// On ESP32 it calls wire.end() then wire.begin() with no arguments, so the bus
-// restarts on the core's default pins and clock. Custom SDA/SCL pins or a
-// setClock() frequency are NOT preserved; a project using them must restore
-// them itself or supply its own recovery hook. Not tested on hardware here.
+// On ESP32 it calls wire.end() then wire.begin() with no arguments. It does not
+// explicitly restore project settings: whether custom SDA/SCL pins or a
+// setClock() frequency survive depends on the Arduino core, so preservation is
+// NOT guaranteed here. A project using them must review its core's behavior or
+// supply an explicit restore/recovery hook. Not tested on hardware here.
 inline bool recoverI2CBus(TwoWire &wire = Wire,
                           const I2CRecoveryConfig &config = I2CRecoveryConfig())
 {

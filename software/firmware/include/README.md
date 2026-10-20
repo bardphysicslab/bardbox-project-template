@@ -84,11 +84,12 @@ chooses the fault code.
 
 `recoverI2CBus(wire, config)` is an opt-in I2C transport recovery step above
 `Wire.h`, called only after the project's health policy asks for recovery. On
-ESP32 it calls `wire.end()` and then `wire.begin()` with no arguments, so the
-bus restarts on the core's **default pins and clock**: custom SDA/SCL pins or a
-`setClock()` frequency are not preserved, and a project using them must
-restore them or supply its own hook. On other platforms it does nothing and
-returns `false`. It has not been tested on hardware in this template.
+ESP32 it calls `wire.end()` and then `wire.begin()` with no arguments. It does
+not explicitly restore project settings, so preservation of custom SDA/SCL pins
+or a `setClock()` frequency is **not guaranteed**: that depends on the Arduino
+core, and a project using them must review its core's behavior or supply an
+explicit restore hook. On other platforms it does nothing and returns `false`.
+It has not been tested on hardware in this template.
 
 Both headers moved here from the retired root `firmware/include/` folder, whose
 older, unused `SensorHealthTracker` variant was removed in favour of
