@@ -101,6 +101,32 @@ Use `hardware/ecad` for KiCad and `hardware/mcad` for mechanical/enclosure files
 Keep separate firmware projects under `software/firmware/<project>`; a single
 project may use this directory directly.
 
+## Flash a local build and set UID/Wi-Fi
+
+1. Build: `pio run -e <environment>`. The files are in `.pio/build/<environment>/`:
+   `firmware.bin` (the application), `bootloader.bin` and `partitions.bin` (the
+   board layout).
+2. Flash with the development flasher in `bardphysicslab/firmware-tools`
+   (`tools/dev-flasher`), or with `pio run -e <environment> -t upload`. For an
+   ordinary update, choose `firmware.bin` only. The flasher writes it into the
+   inactive application slot and keeps the running firmware as the previous image.
+   Saved settings (NVS) and stored records (LittleFS) are not written. Add
+   `bootloader.bin` and `partitions.bin` only for a blank board or a layout repair
+   (first install). Note that PlatformIO's own upload always writes the first slot and
+   resets the boot record instead.
+3. Press RESET, then use **Update settings** (or the `CONFIG_*` commands) to set the
+   UID and Wi-Fi. They apply at the next start.
+
+The default compiled Wi-Fi network is empty. The intended default ("Bard Wireless"
+open network) is not compiled in until its exact SSID is confirmed; see
+[firmware-tools#50](https://github.com/bardphysicslab/firmware-tools/issues/50).
+
+**OTA-ready layout, not OTA:** `partitions_bardbox_8mb_ota.csv` keeps two
+application slots, a boot record and separate settings and record partitions, so
+updates can keep the previous image and the saved data. Network OTA, with signed
+images, rollout, health confirmation and rollback, is a later milestone and is not
+implemented by this layout.
+
 ## Synthetic Wi-Fi demo
 
 [Publish 42 through the API](examples/wifi42/README.md) is an isolated test sketch
