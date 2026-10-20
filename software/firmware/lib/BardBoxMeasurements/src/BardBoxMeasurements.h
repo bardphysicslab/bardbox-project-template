@@ -73,8 +73,8 @@ class BardBoxMeasurements : public SnapshotSource {
  private:
   struct Sensor {
     char name[24] = {};
-    uint8_t firstChannel = 0;
     uint8_t channelCount = 0;
+    uint8_t channels[kMaxChannels] = {};  // global channel indices, declared order
     bool hasSample = false;
     uint32_t publishSeq = 0;
     uint32_t handoffMs = 0;

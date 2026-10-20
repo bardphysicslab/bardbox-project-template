@@ -9,19 +9,25 @@
 
 namespace bbcore {
 
-// Builds one reply line on the serial port.
+// Builds one complete reply line in a bounded buffer owned by BardBoxSerial.
+// If the reply does not fit, the whole reply becomes "ERR REPLY_TOO_LONG".
 class SerialLine {
  public:
-  explicit SerialLine(Stream &out) : out_(out) {}
+  SerialLine(char *buf, size_t cap) : buf_(buf), cap_(cap) {}
   SerialLine &text(const char *s);
   SerialLine &uint(uint32_t v);
   SerialLine &integer(int64_t v);
   SerialLine &real(double v);
   SerialLine &hex32(uint32_t v);
   void end();
+  size_t length() const { return overflow_ ? 0 : len_; }
+  bool overflowed() const { return overflow_; }
 
  private:
-  Stream &out_;
+  char *buf_;
+  size_t cap_;
+  size_t len_ = 0;
+  bool overflow_ = false;
 };
 
 struct SerialStatus {
@@ -64,6 +70,7 @@ class BardBoxSerial {
  public:
   static constexpr size_t kMaxLine = 64;  // longer lines are discarded
   static constexpr size_t kMaxBytesPerStep = 256;
+  static constexpr size_t kMaxReply = 768;
 
   template <typename Port>
   void beginPort(Port &port, SerialDataSource &source) {
@@ -72,15 +79,20 @@ class BardBoxSerial {
   }
   void begin(Stream &port, SerialDataSource &source);
 
-  // Bounded step: reads at most kMaxBytesPerStep bytes and answers at most
-  // maxCommands complete lines.
+  // Bounded step. Output never blocks: a pending reply is written only as far
+  // as the port reports room (partial writes resume next step), and no new
+  // command is read while a reply is pending. Then reads at most
+  // kMaxBytesPerStep bytes and answers at most maxCommands lines.
   void service(uint8_t maxCommands = 1);
 
+  bool replyPending() const { return outPos_ < outLen_; }
   uint32_t discardedLines() const { return discarded_; }
+  uint32_t stalledSteps() const { return stalled_; }
   static uint32_t configuredBaud() { return BARDBOX_SERIAL_BAUD; }
 
  private:
   void handle(const char *line);
+  bool flush();  // true when no reply is pending
   void writeInfo(SerialLine &line);
   void writeHeader(SerialLine &line);
   void writeRead(SerialLine &line);
@@ -94,6 +106,10 @@ class BardBoxSerial {
   size_t len_ = 0;
   bool overflow_ = false;
   uint32_t discarded_ = 0;
+  char out_[kMaxReply] = {};
+  size_t outLen_ = 0;
+  size_t outPos_ = 0;
+  uint32_t stalled_ = 0;
 };
 
 }  // namespace bbcore

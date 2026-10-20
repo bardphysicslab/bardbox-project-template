@@ -177,6 +177,47 @@ static void test_settings() {
   CHECK(!f.box.getSetting("wifi_password", v));
 }
 
+
+static void test_interleaved_registration() {
+  BardBoxInterface box;
+  HostStream io;
+  g_host_millis = 1000;
+  BardBoxSensor a = box.addSensor("pms_a");
+  BardBoxSensor b = box.addSensor("pms_b");
+  CHECK(a.addMeasurement("pm25", "ug/m3"));
+  CHECK(b.addMeasurement("pm25", "ug/m3"));  // same name, other sensor
+  CHECK(a.addMeasurement("pm10", "ug/m3"));
+  CHECK(b.addMeasurement("pm10", "ug/m3"));
+  CHECK(box.beginWithPort(io, FIRMWARE_VERSION, false));
+  CHECK_EQ_STR(ask(box, io, "HEADER"),
+               "HDR,v2,record,boot,captured_ms,pms_a.pm25,pms_b.pm25,pms_a.pm10,pms_b.pm10");
+  CHECK(a.publish(1.0f, 2.0f).accepted);   // a: pm25=1, pm10=2
+  CHECK(b.publish(10.0f, 20.0f).accepted); // b: pm25=10, pm10=20
+  CHECK_EQ_STR(ask(box, io, "READ_LIVE"),
+               "LIVE,v2,5eed0001,1000|pms_a,publish=1,handoff_age_ms=0,acquired=unknown,pm25=1,pm10=2"
+               "|pms_b,publish=1,handoff_age_ms=0,acquired=unknown,pm25=10,pm10=20");
+  advance(box, 61000);
+  CHECK_EQ_STR(ask(box, io, "READ"), "DAT,v2,1,5eed0001,61000,1,10,2,20");
+}
+
+static void test_stalled_serial_does_not_stop_recording() {
+  Fixture f;
+  f.bme.publish(43.0f, 21.5f, 100980.0f);
+  f.io.writeRoom = 0;  // host connected but not draining
+  f.io.input.append("INFO\nPING\n");
+  for (uint32_t t = 1000; t <= 200000; t += 1000) advance(f.box, t);
+  CHECK(f.io.output.empty());                 // nothing half-written
+  f.io.writeRoom = 4096;
+  f.io.maxPerWrite = 7;                       // now drains, but in small pieces
+  for (int i = 0; i < 400; ++i) f.box.runServiceStep();
+  const std::string out = f.io.output;
+  CHECK(out.find("OK INFO uid=unassigned") == 0);  // composed at t=1 s, delivered intact
+  CHECK(out.find(" record=none ") != std::string::npos);
+  CHECK(out.size() > 6 && out.compare(out.size() - 6, 6, "\nPONG\n") == 0);  // then the next reply
+  f.io.maxPerWrite = 1u << 20;
+  CHECK(ask(f.box, f.io, "INFO").find(" record=3 ") != std::string::npos);  // recorded while stalled
+}
+
 int main() {
   test_registration();
   test_publish_checks();
@@ -186,6 +227,8 @@ int main() {
   test_backpressure_keeps_latest();
   test_serial_parsing();
   test_settings();
+  test_interleaved_registration();
+  test_stalled_serial_does_not_stop_recording();
   if (failures) {
     fprintf(stderr, "%d check(s) failed\n", failures);
     return 1;

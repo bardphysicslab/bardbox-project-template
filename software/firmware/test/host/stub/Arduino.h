@@ -15,6 +15,7 @@ class Stream {
   virtual ~Stream() {}
   virtual int available() = 0;
   virtual int read() = 0;
+  virtual int availableForWrite() = 0;
   virtual size_t write(const uint8_t *data, size_t len) = 0;
 };
 
@@ -24,9 +25,13 @@ class HostStream : public Stream {
   std::string input;
   std::string output;
   size_t pos = 0;
+  int writeRoom = 4096;     // 0 simulates a connected host that stopped draining
+  size_t maxPerWrite = 1u << 20;  // smaller values simulate partial writes
   int available() override { return static_cast<int>(input.size() - pos); }
   int read() override { return pos < input.size() ? static_cast<unsigned char>(input[pos++]) : -1; }
+  int availableForWrite() override { return writeRoom; }
   size_t write(const uint8_t *data, size_t len) override {
+    if (len > maxPerWrite) len = maxPerWrite;
     output.append(reinterpret_cast<const char *>(data), len);
     return len;
   }

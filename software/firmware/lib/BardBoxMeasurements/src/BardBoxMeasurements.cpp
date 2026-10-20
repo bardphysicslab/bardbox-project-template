@@ -93,9 +93,7 @@ int BardBoxMeasurements::addSensor(const char *name) {
     ++registrationErrors_;
     return -1;
   }
-  Sensor &entry = sensors_[sensorCount_];
-  strcpy(entry.name, name);
-  entry.firstChannel = channelCount_;
+  strcpy(sensors_[sensorCount_].name, name);
   return sensorCount_++;
 }
 
@@ -103,10 +101,10 @@ bool BardBoxMeasurements::addMeasurement(uint8_t sensor, const char *name, const
                                          MeasurementType type) {
   bool ok = !frozen_ && sensor < sensorCount_ && channelCount_ < kMaxChannels &&
             validName(name, sizeof channels_[0].name) && validUnit(unit, sizeof channels_[0].unit);
-  // A sensor's measurements are contiguous: declare them before the next sensor.
-  ok = ok && sensors_[sensor].firstChannel + sensors_[sensor].channelCount == channelCount_;
-  for (uint8_t c = ok ? sensors_[sensor].firstChannel : 0; ok && c < channelCount_; ++c)
-    if (strcmp(channels_[c].name, name) == 0) ok = false;
+  // Measurements of different sensors may be declared in any interleaving;
+  // each sensor keeps its own declared order for positional publish.
+  for (uint8_t k = 0; ok && k < sensors_[sensor].channelCount; ++k)
+    if (strcmp(channels_[sensors_[sensor].channels[k]].name, name) == 0) ok = false;
   if (!ok) {
     ++registrationErrors_;
     return false;
@@ -117,7 +115,8 @@ bool BardBoxMeasurements::addMeasurement(uint8_t sensor, const char *name, const
   ch.type = type;
   ch.sensor = sensor;
   ch.cached.kind = kindOf(type);
-  ++sensors_[sensor].channelCount;
+  Sensor &s = sensors_[sensor];
+  s.channels[s.channelCount++] = static_cast<uint8_t>(channelCount_ - 1);
   return true;
 }
 
@@ -144,11 +143,11 @@ PublishOutcome BardBoxMeasurements::publish(uint8_t sensor, const ValueArg *args
   }
   ChannelValue converted[kMaxChannels];
   for (uint8_t k = 0; k < s.channelCount; ++k) {
-    converted[k] = convertValue(channels_[s.firstChannel + k].type, args[k]);
+    converted[k] = convertValue(channels_[s.channels[k]].type, args[k]);
     if (converted[k].status != ChannelStatus::Valid) ++result.faultyChannels;
   }
   lock();
-  for (uint8_t k = 0; k < s.channelCount; ++k) channels_[s.firstChannel + k].cached = converted[k];
+  for (uint8_t k = 0; k < s.channelCount; ++k) channels_[s.channels[k]].cached = converted[k];
   ++s.publishSeq;
   s.hasSample = true;
   s.handoffMs = millis();

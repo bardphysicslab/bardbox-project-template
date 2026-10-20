@@ -61,15 +61,9 @@ class BardBoxInterface : private bbcore::SerialDataSource {
   BardBoxSensor addSensor(const char *name);
 
   // Starts BardBox, including internal service that keeps running while
-  // student code waits in delay(). No arguments.
-  bool begin() {
-#if !defined(BARDBOX_INTERFACE_IMPLEMENTATION)
-    static_assert(sizeof(FIRMWARE_VERSION) > 1, "Please set FIRMWARE_VERSION in main.cpp.");
-    return beginWithVersion(FIRMWARE_VERSION);
-#else
-    return false;
-#endif
-  }
+  // student code waits in delay(). No arguments. Defined below, only in
+  // translation units that see FIRMWARE_VERSION.
+  inline bool begin();
 
   // Optional: validated effective public settings. Supported name:
   // "recording_interval_ms" (milliseconds).
@@ -105,3 +99,11 @@ class BardBoxInterface : private bbcore::SerialDataSource {
   const char *firmwareVersion_ = "";
   uint32_t bootId_ = 0;
 };
+
+// begin() is defined only where student code includes this header, so every
+// definition is identical (one FIRMWARE_VERSION per build). The implementation
+// file declares but never defines or calls it.
+#if !defined(BARDBOX_INTERFACE_IMPLEMENTATION)
+static_assert(sizeof(FIRMWARE_VERSION) > 1, "Please set FIRMWARE_VERSION in main.cpp.");
+inline bool BardBoxInterface::begin() { return beginWithVersion(FIRMWARE_VERSION); }
+#endif
