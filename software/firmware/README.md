@@ -67,8 +67,9 @@ deployed hardware. Publish the resulting health state through additive
 
 ## Local configuration
 
-When a firmware variant needs per-device settings, use `src/config.example.h`
-(tracked placeholders) and `src/config.h` (ignored local values). Rename an existing
+When a firmware variant needs per-device settings, use `include/config.example.h`
+(tracked safe example) and `include/config.h` (ignored local values); see
+[`include/README.md`](include/README.md#configuration-headers). Rename an existing
 private `secrets.h` locally without replacing its values. This template's simple
 simulator currently has no private configuration header to rename. Do not add
 credentials to it merely to match another project's configuration needs.

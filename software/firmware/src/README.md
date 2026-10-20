@@ -17,23 +17,9 @@ prescribed.
 
 ## Configuration
 
-Following the [repository layout](https://github.com/bardphysicslab/bardbox/blob/main/docs/repository-layout.md) convention, only
-when a firmware variant needs per-device build values:
-
-- `src/config.example.h`: tracked safe placeholders and documented defaults.
-- `src/config.h`: ignored (`**/config.h` in the root `.gitignore`); private
-  local values. Never commit credentials.
-
-This simulator needs neither, so neither file exists here. Do not add one just
-to fill the tree.
-
-Build settings (pins, compiled drivers, partition layout, firmware version) stay
-build choices. Supported per-device operational fields (UID, Wi-Fi, endpoint,
-upload credential, intervals) are intended to become runtime-provisioned
-settings rather than `config.h` defines; see the
-[serial/base API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-base-and-serial-api.md) and
-[firmware blueprint](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-blueprint.md). Secrets are set-only and are
-never printed, logged or committed.
+Configuration headers live in [`include/`](../include/README.md#configuration-headers),
+not here. `main.cpp` includes `config.h` only if its variant uses
+configuration; the current simulator includes none.
 
 Status: this README was added by the [FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824) scaffold (October 20,
 2026). The existing simulator `main.cpp` is unchanged and is the only code

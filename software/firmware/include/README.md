@@ -4,9 +4,32 @@ Standard PlatformIO project include folder: headers shared by this project's
 `src/` files. It is not a BardBox module, and whether future helpers move into
 `lib/` modules is not settled.
 
-It currently holds two helpers. Both are policy and state trackers only: they
+It currently holds two helpers, and is the documented home for optional
+[configuration headers](#configuration-headers). Both helpers are policy and state trackers only: they
 perform no hardware, sensor or network I/O, and the current simulator
 `main.cpp` does not use them.
+
+## Configuration headers
+
+Following the [repository layout](https://github.com/bardphysicslab/bardbox/blob/main/docs/repository-layout.md#firmware-configuration) rule, a firmware variant that needs
+per-device build values uses:
+
+- `include/config.example.h`: tracked, safe example values and documented
+  defaults; never real credentials.
+- `include/config.h`: ignored private local values (the root `.gitignore`
+  pattern `**/config.h` already covers it).
+
+The example header is documentation: it is not activated or compiled
+automatically, and C++ uses a header only through an explicit `#include`. The
+ignore rule is independent of either. The current simulator uses no
+configuration, so neither file exists. Do not add one just to fill the tree.
+
+Build values (pins, compiled drivers, partition layout, firmware version) are
+separate from supported operational fields (UID, Wi-Fi, endpoint, upload
+credential, intervals), which are intended to become runtime-provisioned
+settings rather than compiled defines; not every field is compiled in. Secrets
+are set-only and never printed, logged or committed. See the
+[serial/base API proposal](https://github.com/bardphysicslab/bardbox/blob/main/docs/firmware-base-and-serial-api.md).
 
 ## BardBoxSensorHealth.h
 
