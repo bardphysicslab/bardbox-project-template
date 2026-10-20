@@ -75,10 +75,20 @@ static_assert(BARDBOX_NETWORK_RETRY_BASE_MS >= 100 &&
 static_assert(BARDBOX_NETWORK_IDLE_POLL_MS >= 100 && BARDBOX_NETWORK_IDLE_POLL_MS <= 60000,
               "BARDBOX_NETWORK_IDLE_POLL_MS must be between 100 and 60000 ms");
 
-// Wi-Fi connection settings belong to this module. Credentials, endpoint,
-// trusted CA PEM and optional bearer token have NO example values/defaults:
-// BARDBOX_WIFI_SSID, BARDBOX_WIFI_PASSWORD, BARDBOX_NETWORK_ENDPOINT,
-// BARDBOX_NETWORK_CA_PEM, BARDBOX_NETWORK_BEARER_TOKEN.
+// Wi-Fi connection settings belong to this module. The default network is the
+// open BardWireless network (maintainer decision, template#36 comment 6304409557);
+// a project config.h that defines BARDBOX_WIFI_SSID/PASSWORD (even empty) wins,
+// and settings saved over USB serial override both from the next start.
+#ifndef BARDBOX_WIFI_SSID
+#define BARDBOX_WIFI_SSID "BardWireless"
+#endif
+#ifndef BARDBOX_WIFI_PASSWORD
+#define BARDBOX_WIFI_PASSWORD ""
+#endif
+// Endpoint, trusted CA PEM and optional bearer token have NO example values or
+// defaults: BARDBOX_NETWORK_ENDPOINT, BARDBOX_NETWORK_CA_PEM,
+// BARDBOX_NETWORK_BEARER_TOKEN. A private network password belongs only in the
+// ignored local config.h or in saved settings.
 // Only HTTPS with peer/hostname verification is supported. Absent/invalid
 // configuration reports unconfigured; no insecure TLS fallback exists.
 #ifndef BARDBOX_WIFI_RECONNECT_MS

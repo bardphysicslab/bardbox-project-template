@@ -117,9 +117,11 @@ project may use this directory directly.
 3. Press RESET, then use **Update settings** (or the `CONFIG_*` commands) to set the
    UID and Wi-Fi. They apply at the next start.
 
-The default compiled Wi-Fi network is empty. The intended default ("Bard Wireless"
-open network) is not compiled in until its exact SSID is confirmed; see
-[firmware-tools#50](https://github.com/bardphysicslab/firmware-tools/issues/50).
+The default Wi-Fi network is the open `BardWireless` network (no password;
+maintainer decision in [#36](https://github.com/bardphysicslab/bardbox-project-template/issues/36#issuecomment-6304409557)).
+A project `config.h` that sets `BARDBOX_WIFI_SSID`/`BARDBOX_WIFI_PASSWORD` uses
+its own values, and settings saved over USB serial override both. Endpoint, CA
+and upload token have no defaults.
 
 **OTA-ready layout, not OTA:** `partitions_bardbox_8mb_ota.csv` keeps two
 application slots, a boot record and separate settings and record partitions, so
