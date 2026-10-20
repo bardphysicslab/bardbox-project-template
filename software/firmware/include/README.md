@@ -1,8 +1,12 @@
 # include/
 
-Shared headers for this project. The two existing helpers are policy and state
-trackers only: they perform no hardware, sensor or network I/O, and the current
-simulator `main.cpp` does not use them.
+Standard PlatformIO project include folder: headers shared by this project's
+`src/` files. It is not a BardBox module, and whether future helpers move into
+`lib/` modules is not settled.
+
+It currently holds two helpers. Both are policy and state trackers only: they
+perform no hardware, sensor or network I/O, and the current simulator
+`main.cpp` does not use them.
 
 ## BardBoxSensorHealth.h
 

@@ -9,7 +9,7 @@ configuration header, and does not use the `include/` helpers.
 
 **Target (proposed, not implemented).** `main.cpp` is the start file to open
 in VS Code with PlatformIO. Student code keeps its sensor setup, reads and
-`BardBoxDevice` calls (`lib/BardBoxDevice`) here. Serial responses, network
+`BardBoxInterface` calls (`lib/BardBoxInterface`) here. Serial responses, network
 delivery and recording are implemented by the private BardBox core in `lib/`,
 behind the facade; the student writes no transport code. A larger project can
 split its own files within `src/` later, only when needed; no subfolder is
@@ -37,6 +37,6 @@ never printed, logged or committed.
 
 Status: this README was added by the [FW-LAYOUT-1](https://github.com/bardphysicslab/bardbox/issues/31#issuecomment-6290294824) scaffold (October 20,
 2026). The existing simulator `main.cpp` is unchanged and is the only code
-here; the target above, including the `BardBoxDevice` facade and runtime
+here; the target above, including the `BardBoxInterface` facade and runtime
 settings, is not implemented. Names and interfaces are proposals maintained in
 `bardbox/docs`.

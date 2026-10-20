@@ -1,6 +1,6 @@
 # BardBoxBuffer
 
-Proposed durable record queue behind `BardBoxDevice`. Recording defaults on.
+Proposed durable record queue behind `BardBoxInterface`. Recording defaults on.
 
 | Contract | Overview |
 | --- | --- |

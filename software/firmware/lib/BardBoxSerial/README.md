@@ -1,6 +1,6 @@
 # BardBoxSerial
 
-Proposed serial owner behind `BardBoxDevice`.
+Proposed serial owner behind `BardBoxInterface`.
 
 | Contract | Overview |
 | --- | --- |

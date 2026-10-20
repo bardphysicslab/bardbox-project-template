@@ -1,6 +1,8 @@
-# BardBoxDevice
+# BardBoxInterface
 
-Proposed beginner-facing facade: the only BardBox entry student code calls.
+Beginner-facing facade: the only BardBox entry student code calls. The name
+`BardBoxInterface` is accepted (October 20, 2026); its methods and results
+are proposed.
 
 | Contract | Overview |
 | --- | --- |

@@ -1,6 +1,6 @@
 # BardBoxNetwork
 
-Proposed network delivery owner behind `BardBoxDevice`. Student code makes no network calls.
+Proposed network delivery owner behind `BardBoxInterface`. Student code makes no network calls.
 
 | Contract | Overview |
 | --- | --- |
