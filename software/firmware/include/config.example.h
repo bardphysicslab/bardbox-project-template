@@ -25,17 +25,20 @@
 #define BARDBOX_DEVICE_UID "unassigned"
 
 // ---------------------------------------------------------------------------
-// Network (BardBoxNetwork) -- fake-transport delivery tests; no Wi-Fi adapter
+// Network (BardBoxNetwork) -- ESP32 Wi-Fi/HTTPS; hardware validation pending
 // ---------------------------------------------------------------------------
 
 // Agreed default: network delivery on (1); 0 makes a serial-only device.
-// Without an endpoint this reports unconfigured; without an adapter it cannot
-// deliver. This milestone never connects to a real endpoint.
+// Without a valid endpoint, SSID and trusted CA this reports unconfigured.
+// The real ESP32 adapter connects only when those private settings are supplied.
 #define BARDBOX_NETWORK_ENABLED 1
 
 // Wi-Fi SSID, password, endpoint and upload credentials are private: they
 // belong only in the ignored local config.h or runtime provisioning, never in
 // this file, and have no defaults.
+// Private setting names: BARDBOX_WIFI_SSID, BARDBOX_WIFI_PASSWORD,
+// BARDBOX_NETWORK_ENDPOINT, BARDBOX_NETWORK_CA_PEM,
+// BARDBOX_NETWORK_BEARER_TOKEN (optional). Never use insecure TLS.
 // Deadline/backoff settings and bounds are documented in
 // lib/BardBoxNetwork/src/BardBoxNetworkConfig.h; omitted values use those defaults.
 

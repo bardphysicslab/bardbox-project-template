@@ -74,3 +74,15 @@ static_assert(BARDBOX_NETWORK_RETRY_BASE_MS >= 100 &&
               "Need 100 <= BARDBOX_NETWORK_RETRY_BASE_MS <= BARDBOX_NETWORK_RETRY_MAX_MS <= 3600000");
 static_assert(BARDBOX_NETWORK_IDLE_POLL_MS >= 100 && BARDBOX_NETWORK_IDLE_POLL_MS <= 60000,
               "BARDBOX_NETWORK_IDLE_POLL_MS must be between 100 and 60000 ms");
+
+// Wi-Fi connection settings belong to this module. Credentials, endpoint,
+// trusted CA PEM and optional bearer token have NO example values/defaults:
+// BARDBOX_WIFI_SSID, BARDBOX_WIFI_PASSWORD, BARDBOX_NETWORK_ENDPOINT,
+// BARDBOX_NETWORK_CA_PEM, BARDBOX_NETWORK_BEARER_TOKEN.
+// Only HTTPS with peer/hostname verification is supported. Absent/invalid
+// configuration reports unconfigured; no insecure TLS fallback exists.
+#ifndef BARDBOX_WIFI_RECONNECT_MS
+#define BARDBOX_WIFI_RECONNECT_MS 30000
+#endif
+static_assert(BARDBOX_WIFI_RECONNECT_MS >= 1000 && BARDBOX_WIFI_RECONNECT_MS <= 3600000,
+              "BARDBOX_WIFI_RECONNECT_MS must be 1000..3600000 milliseconds");

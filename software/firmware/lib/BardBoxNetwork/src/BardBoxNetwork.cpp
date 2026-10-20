@@ -96,6 +96,7 @@ void BardBoxNetwork::finish(uint32_t nowMs, const TransportOutcome &o, DeliveryM
 }
 
 void BardBoxNetwork::step(uint32_t nowMs, DeliveryMailbox &mailbox) {
+  if (active()) transport_->service(nowMs);
   switch (stats_.state) {
     case NetworkState::Idle:
     case NetworkState::Backoff:
