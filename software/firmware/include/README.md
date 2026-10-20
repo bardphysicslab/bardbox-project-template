@@ -94,3 +94,19 @@ It has not been tested on hardware in this template.
 Both headers moved here from the retired root `firmware/include/` folder, whose
 older, unused `SensorHealthTracker` variant was removed in favour of
 `BardBoxSensorHealth.h` above; the previous files remain in Git history.
+
+### Configuration is shared across compilation units
+
+The common PlatformIO build flags explicitly add `-Iinclude` for the BardBox
+libraries as well as the sketch; each test environment inherits that flag.
+PlatformIO's automatic project include path alone reaches the sketch but not
+these separately compiled library sources. Without the explicit flag, a build
+can succeed while modules silently use defaults. Adding `#include "config.h"`
+to main alone does not configure another `.cpp` file. Keep the modules' own
+includes and the shared flag together. After changing this build setup, rebuild
+before Upload; no additional student include is required.
+
+PEM certificates used in a macro must be escaped as a single C string (with
+`\n` line separators), or use proper preprocessor continuations. A bare
+multiline raw string after `#define` ends at the first physical newline and
+fails to compile. Keep private certificates/tokens in ignored local config.
