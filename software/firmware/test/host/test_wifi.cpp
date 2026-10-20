@@ -90,7 +90,15 @@ static void test_partial_io() {
 }
 static void test_bad_responses() {
   const char *responses[]={"HTTP/1.1 200 OK\n\n", "HTTP/1.1 20 OK\r\n\r\n",
-    "HTTP/1.1 200 OK\r\nBad Header\r\n\r\n", "HTTP/1.1 200 OK\rX"};
+    "HTTP/1.1 200 OK\r\nBad Header\r\n\r\n", "HTTP/1.1 200 OK\rX",
+    "HTTP/1.1 200 OK\r\nContent-Length: nope\r\n\r\n",
+    "HTTP/1.1 200 OK\r\nContent-Length: 1\r\ncontent-length: 2\r\n\r\n",
+    "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nContent-Length: 1\r\n\r\n",
+    "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nTransfer-Encoding: chunked\r\n\r\n",
+    "HTTP/1.1 200 OK\r\nContent-Length: 18446744073709551616\r\n\r\n",
+    "HTTP/1.1 200 OK\r\nTransfer-Encoding: gzip\r\n\r\n",
+    "HTTP/1.0 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n",
+    "HTTP/1.1 204 No Content\r\nContent-Length: 0\r\n\r\n"};
   for(auto response:responses) { FakeWifi io;io.response=response;
     WifiHttpsTransport t(io,settings()); CHECK(t.start(1,reinterpret_cast<const uint8_t *>("42"),2,0));
     auto out=run(t);CHECK(out.kind==TransportOutcome::Kind::Malformed && !out.endpointVerified); }

@@ -12,6 +12,14 @@ bool visible(const char *s, size_t max) {
         static_cast<unsigned char>(s[n]) > 126) return false;
   return n > 0;
 }
+bool equalAscii(const char *a, const char *b) {
+  while (*a && *b) {
+    const unsigned char x = static_cast<unsigned char>(*a++);
+    const unsigned char y = static_cast<unsigned char>(*b++);
+    if ((x >= 'A' && x <= 'Z' ? x + 32 : x) != (y >= 'A' && y <= 'Z' ? y + 32 : y)) return false;
+  }
+  return !*a && !*b;
+}
 bool tokenChar(unsigned char ch) {
   return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
          (ch >= '0' && ch <= '9') || strchr("!#$%&'*+-.^_`|~", ch);
@@ -72,6 +80,8 @@ bool WifiHttpsTransport::start(uint32_t id, const uint8_t *body, size_t len, uin
   firstLine_ = true;
   previousCr_ = false;
   responseStatus_ = 0;
+  contentLength_ = 0;
+  hasContentLength_ = hasTransferEncoding_ = http11_ = false;
   result_ = TransportOutcome();
   attemptId_ = id;
   active_ = true;
@@ -125,14 +135,47 @@ bool WifiHttpsTransport::responseByte(uint8_t ch) {
         finish(TransportOutcome::Kind::Malformed); return false;
       }
       responseStatus_ = (line_[9]-'0')*100 + (line_[10]-'0')*10 + line_[11]-'0';
+      http11_ = !strncmp(line_, "HTTP/1.1 ", 9);
       firstLine_ = false;
     } else if (!lineLen_) {
+      if ((hasTransferEncoding_ && (hasContentLength_ || !http11_)) ||
+          (responseStatus_ == 204 && (hasContentLength_ || hasTransferEncoding_))) {
+        finish(TransportOutcome::Kind::Malformed); return false;
+      }
       finish(TransportOutcome::Kind::HttpStatus, responseStatus_); return false;
     } else {
       size_t i = 0;
       while (i < lineLen_ && line_[i] != ':' && tokenChar(line_[i])) ++i;
       if (!i || i == lineLen_ || line_[i] != ':') {
         finish(TransportOutcome::Kind::Malformed); return false;
+      }
+      line_[i] = 0;
+      char *value = line_ + i + 1;
+      while (*value == ' ' || *value == '\t') ++value;
+      char *end = line_ + lineLen_;
+      while (end > value && (end[-1] == ' ' || end[-1] == '\t')) --end;
+      *end = 0;
+      if (equalAscii(line_, "Content-Length")) {
+        uint64_t length = 0;
+        if (!*value) { finish(TransportOutcome::Kind::Malformed); return false; }
+        for (const char *p = value; *p; ++p) {
+          if (*p < '0' || *p > '9' || length > (UINT64_MAX - (*p - '0')) / 10) {
+            finish(TransportOutcome::Kind::Malformed); return false;
+          }
+          length = length * 10 + (*p - '0');
+        }
+        if (hasContentLength_ && contentLength_ != length) {
+          finish(TransportOutcome::Kind::Malformed); return false;
+        }
+        contentLength_ = length;
+        hasContentLength_ = true;
+      } else if (equalAscii(line_, "Transfer-Encoding")) {
+        // This minimal client accepts only a single final chunked coding.
+        // No body is consumed; unsupported/ambiguous framing is never an ACK.
+        if (hasTransferEncoding_ || !equalAscii(value, "chunked")) {
+          finish(TransportOutcome::Kind::Malformed); return false;
+        }
+        hasTransferEncoding_ = true;
       }
     }
     lineLen_ = 0;

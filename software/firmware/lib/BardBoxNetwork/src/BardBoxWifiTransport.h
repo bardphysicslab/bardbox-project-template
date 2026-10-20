@@ -62,5 +62,7 @@ class WifiHttpsTransport : public Transport {
   char line_[512] = {};
   bool firstLine_ = true, previousCr_ = false;
   int responseStatus_ = 0;
+  uint64_t contentLength_ = 0;
+  bool hasContentLength_ = false, hasTransferEncoding_ = false, http11_ = false;
 };
 }  // namespace bbcore

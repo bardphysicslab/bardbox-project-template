@@ -78,7 +78,9 @@ attempt is refused until the original callback completes, preventing callback
 reuse/UAF or unbounded concurrent resolvers. TLS/socket cleanup stays on the
 Network task. Request writes are at most 512 bytes/step; reads at most 128;
 headers are capped at 8 KiB total and 511 bytes per line. Only a fully received,
-well-framed HTTP status/header block can become an outcome; redirects are returned
+well-framed HTTP status/header block can become an outcome. Invalid/overflowing
+Content-Length, conflicting lengths, ambiguous Transfer-Encoding/length and
+unsupported transfer codings are rejected. Redirects are returned
 unchanged and never followed. Informational responses fail this minimal attempt
 rather than being treated as acceptance. Response bodies are not read or stored.
 IPv6 literal URLs, URL credentials, fragments, header injection, overlong URLs

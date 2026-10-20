@@ -33,7 +33,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def reply(self, code):
         self.send_response(code)
-        self.send_header("Content-Length", "0")
+        if code != 204:
+            self.send_header("Content-Length", "0")
         self.send_header("Cache-Control", "no-store")
         self.send_header("Connection", "close")
         self.end_headers()
