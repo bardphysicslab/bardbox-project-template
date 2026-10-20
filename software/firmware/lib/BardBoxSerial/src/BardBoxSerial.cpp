@@ -183,7 +183,11 @@ void BardBoxSerial::writeInfo(SerialLine &line) {
   line.text(" hidden=").uint(st.hidden).text(" unreadable=").uint(st.unreadable);
   line.text(" meta_rebuilt=").uint(st.metaRebuilt);
   line.text(st.lossHistoryKnown ? " loss_history=known" : " loss_history=unknown");
-  line.text(" net=").text(st.network).text(" acquired_time=unknown reg_errors=").uint(st.registrationErrors);
+  line.text(" net=").text(st.network).text(" net_attempts=").uint(st.netAttempts);
+  line.text(" net_acked=").uint(st.netAcked).text(" net_failed=").uint(st.netFailed);
+  line.text(" net_timeouts=").uint(st.netTimeouts).text(" net_retry_ms=").uint(st.netRetryMs);
+  line.text(" net_last=").text(st.netLast);
+  line.text(" acquired_time=unknown reg_errors=").uint(st.registrationErrors);
   line.end();
 }
 

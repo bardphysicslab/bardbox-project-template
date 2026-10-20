@@ -30,7 +30,7 @@ settings keeps working on the defaults.
 | --- | --- | --- |
 | Serial | `BARDBOX_SERIAL_BAUD` (bit/s, default 115200) | `BardBoxSerial` |
 | Identity | `BARDBOX_DEVICE_UID` (default `unassigned`) | `BardBoxInterface` |
-| Network | `BARDBOX_NETWORK_ENABLED` (0/1, default 1); M1 reports it only | `BardBoxNetwork` |
+| Network | `BARDBOX_NETWORK_ENABLED` (0/1, default 1); per-phase deadlines, capped retry and idle polling; see module README (no real adapter yet) | `BardBoxNetwork` |
 | Buffer | `BARDBOX_RECORDING_INTERVAL_S` (s, default 60, 5..86400); `BARDBOX_BUFFER_CAPACITY_RECORDS` (default 256, 2..1024); `BARDBOX_BUFFER_RAM_RECORDS` (RAM retry slots, default 8) | `BardBoxBuffer` |
 
 Wi-Fi SSID, password, endpoint and upload credentials are private: they go

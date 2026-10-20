@@ -7,6 +7,7 @@
 #include <string>
 
 #include "FakeStorage.h"
+#include "BardBoxTransport.h"
 
 uint32_t g_host_millis = 0;
 HostStream Serial;
@@ -14,6 +15,7 @@ void (*g_host_service)(void *) = nullptr;
 void *g_host_service_arg = nullptr;
 static FakeStorage demoStorage;
 bbcore::StorageAdapter *g_host_demo_storage = &demoStorage;
+bbcore::Transport *g_host_demo_transport = nullptr;  // no endpoint: "unconfigured"
 
 void setup();
 void loop();

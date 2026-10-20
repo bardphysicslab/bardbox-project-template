@@ -52,6 +52,12 @@ struct SerialStatus {
   uint32_t metaRebuilt = 0;
   bool lossHistoryKnown = true;
   const char *network = "";
+  uint32_t netAttempts = 0;
+  uint32_t netAcked = 0;
+  uint32_t netFailed = 0;
+  uint32_t netTimeouts = 0;
+  uint32_t netRetryMs = 0;
+  char netLast[24] = "none";
   uint8_t registrationErrors = 0;
 };
 

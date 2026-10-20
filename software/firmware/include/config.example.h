@@ -25,16 +25,19 @@
 #define BARDBOX_DEVICE_UID "unassigned"
 
 // ---------------------------------------------------------------------------
-// Network (BardBoxNetwork) -- delivery not implemented yet (M1)
+// Network (BardBoxNetwork) -- fake-transport delivery tests; no Wi-Fi adapter
 // ---------------------------------------------------------------------------
 
-// Agreed default: network delivery on (1); 0 makes a serial-only device. M1
-// only reports this setting; it does not connect or deliver.
+// Agreed default: network delivery on (1); 0 makes a serial-only device.
+// Without an endpoint this reports unconfigured; without an adapter it cannot
+// deliver. This milestone never connects to a real endpoint.
 #define BARDBOX_NETWORK_ENABLED 1
 
 // Wi-Fi SSID, password, endpoint and upload credentials are private: they
 // belong only in the ignored local config.h or runtime provisioning, never in
 // this file, and have no defaults.
+// Deadline/backoff settings and bounds are documented in
+// lib/BardBoxNetwork/src/BardBoxNetworkConfig.h; omitted values use those defaults.
 
 // ---------------------------------------------------------------------------
 // Buffer (BardBoxBuffer) -- persistent queue on LittleFS (host-tested only)

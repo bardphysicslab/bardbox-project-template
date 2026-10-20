@@ -5,9 +5,10 @@
 //   BardBoxMeasurements - registration, publish checks, latest-reading cache
 //   BardBoxBuffer       - recording interval, boundaries, records, admission
 //   BardBoxSerial       - commands and every wire form
-//   BardBoxNetwork      - network configuration and status
+//   BardBoxNetwork      - delivery of saved records through an injected transport
 //
-// Milestone M1: no persistent storage, network delivery or OTA yet.
+// The Buffer (and its codec) has one owner: the BardBox service task. The
+// Network owner reaches it only through a bounded mailbox. No OTA yet.
 
 #include <Arduino.h>
 #include <stddef.h>
@@ -76,10 +77,19 @@ class BardBoxInterface : private bbcore::SerialDataSource {
   bool beginWithPort(Stream &port, const char *firmwareVersion, bool startServiceTask);
   // Storage for the Buffer; set before begin. ESP32 uses LittleFS by default.
   void useStorage(bbcore::StorageAdapter *storage) { storage_ = storage; }
-  bbcore::BardBoxBuffer &bufferForDelivery() { return buffer_; }  // future Network owner
+  // Delivery transport; set before begin. No device transport exists yet, so
+  // a configured device reports "no_transport" and delivers nothing.
+  void useTransport(bbcore::Transport *transport) { transport_ = transport; }
+  // Host tests and demos only: the Buffer, for inspection on the owner's task.
+  bbcore::BardBoxBuffer &bufferForDelivery() { return buffer_; }
+  bbcore::NetworkStats networkStats() { return mailbox_.stats(); }
   // Hosts have no hardware random source; tests and demos set a boot ID.
   void setHostBootId(uint32_t bootId) { hostBootId_ = bootId; }
-  void runServiceStep();  // one bounded Serial step, then one recording step
+  // One bounded Serial step, one recording step, then at most one delivery
+  // request answered for the Network owner. The only caller of the Buffer.
+  void runServiceStep();
+  // One bounded Network owner step. On a device it runs on its own task.
+  void runNetworkStep();
 
  private:
   friend class BardBoxSensor;
@@ -100,7 +110,10 @@ class BardBoxInterface : private bbcore::SerialDataSource {
   bbcore::BardBoxBuffer buffer_;
   bbcore::BardBoxSerial serial_;
   bbcore::BardBoxNetwork network_;
+  bbcore::DeliveryMailbox mailbox_;
+  bbcore::DeliveryBufferSide deliveryOwner_;
   bbcore::StorageAdapter *storage_ = nullptr;
+  bbcore::Transport *transport_ = nullptr;
   uint32_t hostBootId_ = 0x5eed0001u;
   bool begun_ = false;
   const char *firmwareVersion_ = "";

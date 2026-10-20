@@ -46,6 +46,14 @@ static void serviceTask(void *arg) {
     vTaskDelay(pdMS_TO_TICKS(10));
   }
 }
+
+static void networkTask(void *arg) {
+  BardBoxInterface *self = static_cast<BardBoxInterface *>(arg);
+  for (;;) {
+    self->runNetworkStep();
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+}
 #endif
 
 bool BardBoxInterface::beginWithVersion(const char *firmwareVersion) {
@@ -57,8 +65,13 @@ bool BardBoxInterface::beginWithVersion(const char *firmwareVersion) {
   // Host demo only: the stub's delay() runs the service step, and the demo
   // supplies in-memory storage.
   extern bbcore::StorageAdapter *g_host_demo_storage;
+  extern bbcore::Transport *g_host_demo_transport;
   if (!storage_) storage_ = g_host_demo_storage;
-  g_host_service = [](void *self) { static_cast<BardBoxInterface *>(self)->runServiceStep(); };
+  if (!transport_) transport_ = g_host_demo_transport;
+  g_host_service = [](void *self) {
+    static_cast<BardBoxInterface *>(self)->runServiceStep();
+    static_cast<BardBoxInterface *>(self)->runNetworkStep();
+  };
   g_host_service_arg = this;
   return beginWithPort(Serial, firmwareVersion, false);
 #else
@@ -82,7 +95,8 @@ bool BardBoxInterface::beginWithPort(Stream &port, const char *firmwareVersion, 
 #else
   if (!buffer_.begin(millis(), bootId_, storage_, bootId_)) return false;
 #endif
-  network_.begin();
+  mailbox_.begin();
+  network_.begin(bbcore::NetworkSettings(), transport_, millis(), mailbox_);
   serial_.begin(port, *this);
   begun_ = true;
 #if defined(BARDBOX_INTERFACE_RTOS)
@@ -90,6 +104,11 @@ bool BardBoxInterface::beginWithPort(Stream &port, const char *firmwareVersion, 
     begun_ = false;  // no running service, so no Serial is promised
     return false;
   }
+  // Separate task isolates transport progress from the service task.
+  // Actual scheduling and storage latency still require device measurements.
+  if (startServiceTask && network_.active() &&
+      xTaskCreate(networkTask, "bardbox-net", 6144, this, 1, nullptr) != pdPASS)
+    network_.begin(bbcore::NetworkSettings(), nullptr, millis(), mailbox_);  // reports no_transport
 #else
   (void)startServiceTask;
 #endif
@@ -100,6 +119,11 @@ void BardBoxInterface::runServiceStep() {
   if (!begun_) return;
   serial_.service(1);
   buffer_.service(millis(), measurements_);
+  deliveryOwner_.step(buffer_, mailbox_);
+}
+
+void BardBoxInterface::runNetworkStep() {
+  if (begun_) network_.step(millis(), mailbox_);
 }
 
 void BardBoxInterface::status(bbcore::SerialStatus &out) {
@@ -124,6 +148,13 @@ void BardBoxInterface::status(bbcore::SerialStatus &out) {
   out.unreadable = b.unreadable;
   out.metaRebuilt = b.metaRebuilt;
   out.lossHistoryKnown = b.lossHistoryKnown;
-  out.network = network_.statusName();
+  const bbcore::NetworkStats n = mailbox_.stats();
+  out.network = bbcore::networkStateName(n.state);
+  out.netAttempts = n.attempts;
+  out.netAcked = n.acked;
+  out.netFailed = n.failed;
+  out.netTimeouts = n.timeouts;
+  out.netRetryMs = n.retryInMs;
+  memcpy(out.netLast, n.lastOutcome, sizeof out.netLast);
   out.registrationErrors = measurements_.registrationErrors();
 }

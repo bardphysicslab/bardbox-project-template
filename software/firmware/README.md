@@ -13,12 +13,12 @@ software/firmware/
   lib/
 ```
 
-Layout and milestone M1 ([#36](https://github.com/bardphysicslab/bardbox-project-template/issues/36)):
+Layout and integrated firmware milestones ([#36](https://github.com/bardphysicslab/bardbox-project-template/issues/36)):
 the BardBox modules in `lib/` now contain code, host-tested with simulated
 values and built for the supported board, but not run on hardware. This is
 progress toward the first usable template, not its completion: recording
 persists to LittleFS (host-tested with simulated storage and restarts only),
-and network delivery and OTA are not implemented. Start in `src/main.cpp`.
+and Network delivery is host-tested through a simulated transport only. Real Wi-Fi/HTTPS and OTA are not implemented. Start in `src/main.cpp`.
 
 ```text
 software/firmware/
@@ -33,7 +33,7 @@ software/firmware/
   lib/BardBoxMeasurements/           registration, publish checks, latest-reading cache
   lib/BardBoxBuffer/                 recording interval, records, durable FIFO queue and ACK
   lib/BardBoxSerial/                 serial commands and wire forms
-  lib/BardBoxNetwork/                network settings and status (no delivery in M1)
+  lib/BardBoxNetwork/                delivery policy/mailbox and candidate JSON (fake transport only)
   test/host/                         host tests and demo (simulated)
 ```
 

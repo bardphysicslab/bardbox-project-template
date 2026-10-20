@@ -40,3 +40,17 @@ for body in '' '#define FIRMWARE_VERSION ""'; do
     echo "version guard message missing for: [$body]" >&2; cat "$out/version_guard.log" >&2; exit 1; }
 done
 echo "version guard: missing and empty FIRMWARE_VERSION both fail with the required message"
+
+# Network owner with a scripted fake transport. The endpoint is a placeholder
+# that is never contacted; deadlines and backoff are shortened.
+$CXX -std=c++11 -Wall -Wextra -Werror -DBARDBOX_BUFFER_CAPACITY_RECORDS=8 -DBARDBOX_RECORDING_INTERVAL_S=5 \
+  '-DBARDBOX_NETWORK_ENDPOINT="https://receiver.invalid/upload"' \
+  -DBARDBOX_NETWORK_ASSOCIATION_TIMEOUT_MS=1000 -DBARDBOX_NETWORK_DNS_TIMEOUT_MS=500 \
+  -DBARDBOX_NETWORK_CONNECT_TIMEOUT_MS=700 -DBARDBOX_NETWORK_TLS_TIMEOUT_MS=600 \
+  -DBARDBOX_NETWORK_REQUEST_TIMEOUT_MS=400 -DBARDBOX_NETWORK_RESPONSE_TIMEOUT_MS=800 \
+  -DBARDBOX_NETWORK_RETRY_BASE_MS=200 -DBARDBOX_NETWORK_RETRY_MAX_MS=1600 -DBARDBOX_NETWORK_IDLE_POLL_MS=100 \
+  -I"$here" $inc $srcs "$here/test_network.cpp" -o "$out/test_network"
+"$out/test_network" "$out/delivery_sample.json"
+if command -v python3 >/dev/null 2>&1; then
+  python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("sample delivery body is valid JSON:", d["format"], "fw=" + d["firmware"], "queue=%s/%s" % (d["queue"]["generation"], d["queue"]["seq"]), "channels=%d" % len(d["channels"]))' "$out/delivery_sample.json"
+fi

@@ -14,6 +14,7 @@ HostStream Serial;
 void (*g_host_service)(void *) = nullptr;
 void *g_host_service_arg = nullptr;
 bbcore::StorageAdapter *g_host_demo_storage = nullptr;
+bbcore::Transport *g_host_demo_transport = nullptr;
 
 static std::string ask(BardBoxInterface &box, HostStream &io, const char *cmd) {
   io.output.clear();
