@@ -66,3 +66,14 @@ All supported environments use the [project two-slot board recipe](../../boards/
 which excludes the stock TinyUF2 write inside app1. A successful build alone
 never established this upload compatibility. The resolved upload image plan is
 checked separately; browser USB-flasher bundle compatibility is still pending.
+
+### Viewing arrivals
+
+Open the receiver's HTTPS address at `/demo/wifi42` in a browser to see the
+latest accepted synthetic value, server arrival time (UTC), and accepted-upload
+count. The page refreshes every three seconds. These are arrivals, not unique
+measurements: retries and backlog catch-up can increase the count. The page is
+visible to anyone able to reach this deliberately private demo listener; it
+contains only synthetic 42 data, never credentials or arbitrary payload fields.
+State is kept only in memory and resets on receiver restart; firmware keeps
+its persistent queue. POST authentication and acknowledgement are unchanged.
