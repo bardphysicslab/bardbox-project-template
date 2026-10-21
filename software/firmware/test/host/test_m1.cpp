@@ -139,7 +139,7 @@ static void test_records_vs_live() {
                "boot=5eed0001 recording_s=60 record=3 record_ms=181000 storage=host durable=yes stored=3 "
                "capacity=256 evicted=0 pending_ram=0 lost_ram=0 write_failures=0 interrupted=0 "
                "quarantined=0 skipped=0 queue=ok hidden=0 unreadable=0 meta_rebuilt=0 "
-               "loss_history=unknown net=unconfigured net_attempts=0 net_acked=0 net_failed=0 net_timeouts=0 net_retry_ms=0 net_last=none acquired_time=unknown reg_errors=0");
+               "loss_history=unknown net=unconfigured net_attempts=0 net_acked=0 net_failed=0 net_timeouts=0 net_retry_ms=0 net_last=none acquired_time=unknown reg_errors=0 wifi=unconfigured ip=- mac=- rssi_dbm=- wifi_ssid=42617264576972656c657373 receiver=-");
   (void)rec;
 }
 

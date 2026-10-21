@@ -62,6 +62,18 @@ bool WifiHttpsTransport::parseEndpoint() {
   return true;
 }
 
+// Receiver as scheme://host[:port]: the endpoint path and query may carry
+// credentials, so they are never reported; user info is rejected by parsing.
+void WifiHttpsTransport::linkStatus(ConnectivityStatus &out) {
+  if (port_ == 443) snprintf(out.receiver, sizeof out.receiver, "https://%s", host_);
+  else snprintf(out.receiver, sizeof out.receiver, "https://%s:%u", host_, port_);
+  int rssi = 0;
+  const bool up = io_.linkInfo(out.ip, sizeof out.ip, out.mac, sizeof out.mac, rssi);
+  out.wifi = up ? WifiState::Connected : WifiState::Disconnected;
+  out.rssiKnown = up;
+  out.rssiDbm = static_cast<int16_t>(rssi);
+}
+
 bool WifiHttpsTransport::start(uint32_t id, const uint8_t *body, size_t len, uint32_t) {
   if (!configured_ || active_ || !body || !len || len > kMaxDeliveryBody || !io_.reset()) return false;
   char authority[140];

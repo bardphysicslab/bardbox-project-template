@@ -337,6 +337,18 @@ static void test_worst_case_body_fits() {
   const size_t n = bbcore::serializeDeliveryCandidate(r, token, body, sizeof body);
   CHECK(n > 0 && n < bbcore::kMaxDeliveryBody);
   CHECK(bbcore::serializeDeliveryCandidate(r, token, body, n) == 0);  // too small is refused, not cut
+  bbcore::ConnectivityStatus link;  // worst-case device_status as well
+  link.wifi = bbcore::WifiState::Disconnected;
+  snprintf(link.ip, sizeof link.ip, "%s", "255.255.255.255");
+  snprintf(link.mac, sizeof link.mac, "%s", "ff:ff:ff:ff:ff:ff");
+  link.rssiKnown = true;
+  link.rssiDbm = -127;
+  memset(link.ssid, 0x01, 32);  // control bytes are escaped as \u0001
+  memset(link.receiver, 'r', sizeof link.receiver - 1);
+  const size_t withStatus = bbcore::serializeDeliveryCandidate(r, token, body, sizeof body, &link);
+  CHECK(withStatus > n && withStatus < bbcore::kMaxDeliveryBody);
+  printf("worst-case candidate body with device_status: %u of %u bytes\n", (unsigned)withStatus,
+         (unsigned)bbcore::kMaxDeliveryBody);
   printf("worst-case candidate body: %u of %u bytes\n", (unsigned)n, (unsigned)bbcore::kMaxDeliveryBody);
 }
 
@@ -370,6 +382,99 @@ static void test_expired_attempt_cannot_ack_or_advance() {
   }
 }
 
+// Wi-Fi diagnostics (template#36): INFO and the delivery body's device_status
+// carry the same names and meanings; IP and RSSI are unavailable unless
+// connected; nothing secret appears.
+static std::string jsonField(const std::string &body, const char *key) {
+  const std::string k = std::string("\"") + key + "\":";
+  const size_t at = body.find(k, body.find("\"device_status\""));
+  if (at == std::string::npos) return "<missing>";
+  size_t v = at + k.size(), end;
+  if (body[v] == '"') return body.substr(v + 1, body.find('"', v + 1) - v - 1);
+  end = body.find_first_of(",}", v);
+  return body.substr(v, end - v);
+}
+static std::string unhex(const std::string &h) {
+  if (h == "-") return "";
+  std::string out;
+  for (size_t i = 0; i + 1 < h.size(); i += 2) out += static_cast<char>(strtol(h.substr(i, 2).c_str(), nullptr, 16));
+  return out;
+}
+
+static void test_wifi_diagnostics_in_info_and_payload() {
+  FakeStorage storage;
+  FakeTransport t;
+  BardBoxInterface box;
+  HostStream io;
+  g_host_millis = 1000;
+  CHECK(setup(box, io, storage, &t));
+  run(box, 1500);
+  std::string info = ask(box, io, "INFO");
+  CHECK(field(info, "wifi") == "connected" && field(info, "ip") == "192.0.2.10");
+  CHECK(field(info, "mac") == "02:00:5e:10:20:30" && field(info, "rssi_dbm") == "-61");
+  CHECK(unhex(field(info, "wifi_ssid")) == "BardWireless" && field(info, "receiver") == "https://receiver.invalid");
+  runUntil(box, [&] { return !t.bodies.empty(); }, 8000);
+  CHECK(!t.bodies.empty());
+  const std::string body = t.bodies.empty() ? "" : t.bodies[0];
+  // Same fields, same meanings, in both places (encoding aside).
+  CHECK(jsonField(body, "at") == "send");
+  CHECK(jsonField(body, "wifi") == field(info, "wifi") && jsonField(body, "ip") == field(info, "ip"));
+  CHECK(jsonField(body, "mac") == field(info, "mac") && jsonField(body, "rssi_dbm") == field(info, "rssi_dbm"));
+  CHECK(jsonField(body, "wifi_ssid") == unhex(field(info, "wifi_ssid")) && jsonField(body, "receiver") == field(info, "receiver"));
+  CHECK(body.find("\"uid\":\"unassigned\"") != std::string::npos);  // the record itself is unchanged
+
+  // Disconnected: IP and RSSI unavailable, never the last value; MAC kept.
+  t.linkUp = false;
+  t.fallback = Plan(Mode::Stall, 0, Phase::Associating);
+  run(box, 1100);
+  info = ask(box, io, "INFO");
+  CHECK(field(info, "wifi") == "disconnected" && field(info, "ip") == "-" && field(info, "rssi_dbm") == "-");
+  CHECK(field(info, "mac") == "02:00:5e:10:20:30");
+  printf("wifi diagnostics: connected and disconnected INFO/device_status agree\n  %s\n",
+         info.substr(info.find(" wifi=")).c_str());
+}
+
+// The longest INFO the firmware can produce fits the bounded reply buffer.
+static void test_info_worst_case_fits() {
+  bbcore::SerialStatus st;
+  st.uid = st.firmware = "ffffffffffffffffffffffffffffffff";
+  st.bootId = st.recordingIntervalS = st.stored = st.capacity = st.evicted = st.pendingRam = 0xffffffffu;
+  st.lostRam = st.writeFailures = st.interrupted = st.quarantined = st.skippedBoundaries = 0xffffffffu;
+  st.hidden = st.unreadable = st.metaRebuilt = st.netAttempts = st.netAcked = st.netFailed = 0xffffffffu;
+  st.netTimeouts = st.netRetryMs = 0xffffffffu;
+  st.storage = "unavailable";
+  st.queueState = "sequence_exhausted";
+  st.network = "waiting_record";
+  st.registrationErrors = 255;
+  snprintf(st.netLast, sizeof st.netLast, "%s", "timeout_association");
+  st.link.wifi = bbcore::WifiState::Disconnected;
+  snprintf(st.link.ip, sizeof st.link.ip, "%s", "255.255.255.255");
+  snprintf(st.link.mac, sizeof st.link.mac, "%s", "ff:ff:ff:ff:ff:ff");
+  st.link.rssiKnown = true;
+  st.link.rssiDbm = -127;
+  memset(st.link.ssid, '"', 32);
+  memset(st.link.receiver, 'r', sizeof st.link.receiver - 1);
+  struct Source : bbcore::SerialDataSource {
+    bbcore::SerialStatus s;
+    void status(bbcore::SerialStatus &out) override { out = s; }
+    uint8_t sensorCount() override { return bbcore::kMaxSensors; }
+    const char *sensorName(uint8_t) override { return "sssssssssssssssssssssss"; }
+    uint8_t channelCount() override { return 0; }
+    const char *channelName(uint8_t) override { return ""; }
+    uint8_t channelSensor(uint8_t) override { return 0; }
+    bool latestRecord(bbcore::Record &r) override { r.seq = r.capturedMs = 0xffffffffu; return true; }
+    uint8_t liveChannels(bbcore::RecordChannel *, uint32_t &) override { return 0; }
+  } source;
+  source.s = st;
+  static bbcore::BardBoxSerial serial;
+  HostStream io;
+  serial.begin(io, source);
+  io.input = "INFO\n";
+  serial.service(1);
+  CHECK(io.output.compare(0, 8, "OK INFO ") == 0 && io.output.find(" receiver=rrr") != std::string::npos);
+  printf("worst-case INFO: %u of %u bytes\n", (unsigned)io.output.size(), (unsigned)bbcore::BardBoxSerial::kMaxReply);
+}
+
 int main(int argc, char **argv) {
   test_expired_attempt_cannot_ack_or_advance();
   test_explicit_states();
@@ -382,6 +487,8 @@ int main(int argc, char **argv) {
   test_stall_then_fifo_drain(sample);
   test_original_attribution();
   test_worst_case_body_fits();
+  test_wifi_diagnostics_in_info_and_payload();
+  test_info_worst_case_fits();
   if (argc > 1) {  // sample body for an external JSON check
     FILE *f = fopen(argv[1], "w");
     if (f) {

@@ -35,7 +35,32 @@ void BardBoxNetwork::begin(const NetworkSettings &settings, Transport *transport
   else
     stats_.state = NetworkState::Idle;
   nextTryMs_ = nowMs;
+  linkRefreshMs_ = nowMs;
+  refreshLink();
   mailbox.publishStats(stats_);
+}
+
+// Diagnostics only; never changes delivery. IP and RSSI are cleared unless the
+// transport reports a connected link, so no stale value is shown as current.
+void BardBoxNetwork::refreshLink() {
+  ConnectivityStatus c;
+  const char *ssid = settings_.ssid ? settings_.ssid : "";
+  strncpy(c.ssid, ssid, sizeof c.ssid - 1);
+  if (stats_.state == NetworkState::Disabled) {
+    c.wifi = WifiState::Disabled;
+  } else if (!active()) {
+    c.wifi = WifiState::Unconfigured;
+  } else {
+    c.wifi = WifiState::Disconnected;
+    transport_->linkStatus(c);
+  }
+  if (c.wifi != WifiState::Connected) {
+    c.ip[0] = 0;
+    c.rssiKnown = false;
+    c.rssiDbm = 0;
+  }
+  c.ip[sizeof c.ip - 1] = c.mac[sizeof c.mac - 1] = c.receiver[sizeof c.receiver - 1] = 0;
+  stats_.link = c;
 }
 
 uint32_t BardBoxNetwork::deadlineFor(TransportPhase phase) const {
@@ -97,6 +122,10 @@ void BardBoxNetwork::finish(uint32_t nowMs, const TransportOutcome &o, DeliveryM
 
 void BardBoxNetwork::step(uint32_t nowMs, DeliveryMailbox &mailbox) {
   if (active()) transport_->service(nowMs);
+  if (nowMs - linkRefreshMs_ >= 1000) {
+    linkRefreshMs_ = nowMs;
+    refreshLink();
+  }
   switch (stats_.state) {
     case NetworkState::Idle:
     case NetworkState::Backoff:

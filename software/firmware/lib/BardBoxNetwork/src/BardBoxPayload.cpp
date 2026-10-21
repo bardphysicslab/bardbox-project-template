@@ -75,7 +75,17 @@ const char *bounded(const char (&field)[N], char (&copy)[N]) {
 
 }  // namespace
 
-size_t serializeDeliveryCandidate(const Record &r, const QueueToken &token, char *out, size_t cap) {
+// "name":"text" or "name":null when unavailable.
+static void textOrNull(JsonOut &j, const char *name, const char *value) {
+  j.raw(",\"");
+  j.raw(name);
+  j.raw("\":");
+  if (*value) j.string(value);
+  else j.raw("null");
+}
+
+size_t serializeDeliveryCandidate(const Record &r, const QueueToken &token, char *out, size_t cap,
+                                  const ConnectivityStatus *sender) {
   if (!out || cap == 0 || r.channelCount > kMaxChannels) return 0;
   JsonOut j(out, cap);
   char uid[sizeof r.attribution.uid], fw[sizeof r.attribution.firmware], proto[sizeof r.attribution.protocol];
@@ -122,7 +132,20 @@ size_t serializeDeliveryCandidate(const Record &r, const QueueToken &token, char
     j.format(",\"handoff_age_ms\":%lu", static_cast<unsigned long>(ch.handoffAgeMs));
     j.raw(ch.repeatedHandoff ? ",\"repeated_handoff\":true}" : ",\"repeated_handoff\":false}");
   }
-  j.raw("]}");
+  j.raw("]");
+  if (sender) {
+    j.raw(",\"device_status\":{\"at\":\"send\",\"wifi\":\"");
+    j.raw(wifiStateName(sender->wifi));
+    j.raw("\"");
+    textOrNull(j, "ip", sender->ip);
+    textOrNull(j, "mac", sender->mac);
+    if (sender->rssiKnown) j.format(",\"rssi_dbm\":%d", sender->rssiDbm);
+    else j.raw(",\"rssi_dbm\":null");
+    textOrNull(j, "wifi_ssid", sender->ssid);
+    textOrNull(j, "receiver", sender->receiver);
+    j.raw("}");
+  }
+  j.raw("}");
   return j.length();
 }
 

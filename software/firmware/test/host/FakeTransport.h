@@ -1,6 +1,8 @@
 #pragma once
 // Scripted, in-memory transport for host tests and demos. It never opens a
 // socket: every "network" outcome here is simulated.
+#include <stdio.h>
+
 #include <deque>
 #include <string>
 #include <vector>
@@ -24,7 +26,22 @@ class FakeTransport : public bbcore::Transport {
   std::vector<std::string> log;     // one line per finished or aborted attempt
   int aborts = 0;
 
+  // Simulated link diagnostics (linkStatus).
+  bool linkUp = true;
+  const char *linkIp = "192.0.2.10";
+  const char *linkMac = "02:00:5e:10:20:30";
+  int linkRssi = -61;
+  const char *linkReceiver = "https://receiver.invalid";
+
   const char *name() const override { return "fake"; }
+  void linkStatus(bbcore::ConnectivityStatus &out) override {
+    snprintf(out.receiver, sizeof out.receiver, "%s", linkReceiver);
+    snprintf(out.mac, sizeof out.mac, "%s", linkMac);
+    out.wifi = linkUp ? bbcore::WifiState::Connected : bbcore::WifiState::Disconnected;
+    snprintf(out.ip, sizeof out.ip, "%s", linkUp ? linkIp : "");
+    out.rssiKnown = linkUp;
+    out.rssiDbm = static_cast<int16_t>(linkRssi);
+  }
 
   bool start(uint32_t attemptId, const uint8_t *body, size_t len, uint32_t) override {
     current_ = plans.empty() ? fallback : plans.front();

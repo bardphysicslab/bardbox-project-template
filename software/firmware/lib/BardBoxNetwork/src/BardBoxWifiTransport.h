@@ -21,6 +21,13 @@ class WifiIo {
   virtual int write(const uint8_t *data, size_t count) = 0;
   virtual int read(uint8_t *data, size_t capacity) = 0;
   virtual void close() = 0;
+  // Diagnostics: station MAC (once Wi-Fi started), and IPv4 and RSSI while
+  // connected. Returns whether the station is connected. Bounded, no I/O wait.
+  virtual bool linkInfo(char *ip, size_t ipCap, char *mac, size_t macCap, int &rssiDbm) {
+    (void)ipCap; (void)macCap; (void)rssiDbm;
+    ip[0] = mac[0] = 0;
+    return false;
+  }
 };
 
 struct WifiSettings {
@@ -45,6 +52,7 @@ class WifiHttpsTransport : public Transport {
   TransportPhase step(uint32_t nowMs, TransportOutcome &out) override;
   void abort() override;
   void service(uint32_t nowMs) override;
+  void linkStatus(ConnectivityStatus &out) override;
  private:
   bool parseEndpoint();
   bool responseByte(uint8_t ch);  // false: malformed, oversize, or complete

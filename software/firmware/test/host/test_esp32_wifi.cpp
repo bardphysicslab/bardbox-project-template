@@ -6,6 +6,7 @@
 #include <esp_tls.h>
 #include <assert.h>
 #include <stdio.h>
+#include <string>
 StubWifi WiFi;
 dns_cb pendingDns=nullptr;
 void *pendingDnsArg=nullptr;
@@ -37,5 +38,10 @@ int main() {
  assert(out.attemptId==3 && out.endpointVerified);
  assert(tlsCreated==1 && tlsDestroyed==1 && tlsPendingChecks==2);
  assert(tlsSent.find("POST /test HTTP/1.1\r\nHost: receiver.invalid\r\n")==0);
+ bbcore::ConnectivityStatus link; t.linkStatus(link);
+ assert(link.wifi==bbcore::WifiState::Connected && std::string(link.ip)=="192.0.2.10" && link.rssiKnown && link.rssiDbm==-61);
+ assert(std::string(link.mac)=="02:00:5e:10:20:30" && std::string(link.receiver)=="https://receiver.invalid");
+ WiFi.up=false; bbcore::ConnectivityStatus down; t.linkStatus(down);
+ assert(down.wifi==bbcore::WifiState::Disconnected && !down.rssiKnown && down.ip[0]==0);
  puts("ESP32 provider tests pass (stubbed APIs, including pending DNS and select rearming)");
 }

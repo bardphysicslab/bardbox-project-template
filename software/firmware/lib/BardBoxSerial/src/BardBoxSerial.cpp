@@ -351,6 +351,16 @@ void BardBoxSerial::writeInfo(SerialLine &line) {
   line.text(" net_timeouts=").uint(st.netTimeouts).text(" net_retry_ms=").uint(st.netRetryMs);
   line.text(" net_last=").text(st.netLast);
   line.text(" acquired_time=unknown reg_errors=").uint(st.registrationErrors);
+  // Wi-Fi diagnostics (template#36): same names and meanings as the delivery
+  // body's device_status; "-" = unavailable; SSID hex-encoded as in CONFIG_GET.
+  const ConnectivityStatus &w = st.link;
+  line.text(" wifi=").text(wifiStateName(w.wifi)).text(" ip=").text(w.ip[0] ? w.ip : "-");
+  line.text(" mac=").text(w.mac[0] ? w.mac : "-").text(" rssi_dbm=");
+  if (w.rssiKnown) line.integer(w.rssiDbm);
+  else line.text("-");
+  line.text(" wifi_ssid=");
+  hexText(line, w.ssid);
+  line.text(" receiver=").text(w.receiver[0] ? w.receiver : "-");
   line.end();
 }
 

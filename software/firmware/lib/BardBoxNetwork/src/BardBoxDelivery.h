@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "BardBoxBuffer.h"
+#include "BardBoxConnectivity.h"
 #include "BardBoxPayload.h"
 
 namespace bbcore {
@@ -31,6 +32,7 @@ struct NetworkStats {
   uint32_t retryInMs = 0;        // current backoff (0 when not backing off)
   int lastHttp = 0;              // last HTTP status seen (0 = none)
   char lastOutcome[24] = "none";  // copied, so readers never see a changing buffer
+  ConnectivityStatus link;        // Wi-Fi diagnostics, refreshed about once a second
 };
 
 // Bounded hand-off between the Network owner and the single Buffer owner. The

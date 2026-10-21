@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_tls.h>
+#include <esp_wifi.h>
 #include <lwip/dns.h>
 #include <lwip/tcpip.h>
 #include <string.h>
@@ -94,6 +95,19 @@ class Esp32WifiIo : public WifiIo {
   int read(uint8_t *data, size_t capacity) override {
     if (!tls_) return -1;
     return translate(esp_tls_conn_read(tls_, data, capacity));
+  }
+  bool linkInfo(char *ip, size_t ipCap, char *mac, size_t macCap, int &rssiDbm) override {
+    uint8_t m[6];
+    if (esp_wifi_get_mac(WIFI_IF_STA, m) == ESP_OK)  // fails until Wi-Fi has started
+      snprintf(mac, macCap, "%02x:%02x:%02x:%02x:%02x:%02x", m[0], m[1], m[2], m[3], m[4], m[5]);
+    else
+      mac[0] = 0;
+    ip[0] = 0;
+    if (WiFi.status() != WL_CONNECTED) return false;
+    const IPAddress a = WiFi.localIP();
+    snprintf(ip, ipCap, "%u.%u.%u.%u", a[0], a[1], a[2], a[3]);
+    rssiDbm = WiFi.RSSI();
+    return true;
   }
   void close() override {
     if (tls_) { esp_tls_conn_destroy(tls_); tls_ = nullptr; }

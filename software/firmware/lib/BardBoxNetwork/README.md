@@ -14,6 +14,8 @@ Actual radio, DNS and TLS operation on the board has not been verified.
 | Acceptance | Current-attempt HTTP 2xx from the configured endpoint, verified by the transport, before its deadline |
 | Failure | Timeout, unverified/wrong-attempt response, malformed response, redirect or non-2xx retains the head and retries with capped backoff |
 | Deletion failure | Record is delivered again with the same queue token; the receiver must handle duplicate receipt |
+| Wi-Fi diagnostics (template#36) | Network owns a bounded `ConnectivityStatus` snapshot (`BardBoxConnectivity.h`), refreshed about once a second on its task from the transport's `linkStatus()` and published through the locked mailbox: `wifi` (`disabled`, `unconfigured`, `disconnected`, `connected`), station `ip`, station `mac`, `rssi_dbm`, effective `wifi_ssid` (saved setting or default) and `receiver` (endpoint as `scheme://host[:port]` only). IP and RSSI are cleared unless connected; nothing stale is shown as current. Serial `INFO` and the delivery body's `device_status` carry these same names and meanings. No password, bearer token, or URL path, query or user info. Diagnostics only: delivery and acceptance are unchanged |
+| Delivery body `device_status` | Candidate: a separate object `{"at":"send","wifi","ip","mac","rssi_dbm","wifi_ssid","receiver"}`, with unavailable values as `null`, describing the sender at send time (each attempt). It is not part of the record, which keeps its original attribution and measurement-time fields |
 | Dependencies | Buffer record/token types and serialized owner-side adapter; concrete transport supplied by project composition |
 
 `BardBoxDelivery` keeps Buffer access on its single service-task owner. Network
