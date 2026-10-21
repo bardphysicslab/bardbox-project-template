@@ -12,6 +12,22 @@
 
 namespace bbcore {
 namespace {
+// Classifies a failed esp_tls_conn_new_async from the error esp-tls recorded,
+// not from conn_state: in IDF 4.4.7 one call can go CONNECTING -> HANDSHAKE ->
+// FAIL. esp_tls_code is set only by mbedtls and flags only by certificate
+// verification. In non-blocking mode IDF 4.4.7 does not check SO_ERROR, so a
+// refused TCP connection appears as an mbedtls network error (-0x004x/-0x005x)
+// during the handshake ("tls:" with that code). Numbers only.
+void classifyConnectFailure(esp_err_t last, int code, int flags, char *out, size_t cap) {
+  if (last == ESP_ERR_MBEDTLS_SSL_HANDSHAKE_FAILED || code != 0 || flags != 0)
+    snprintf(out, cap, "tls:-0x%04x:0x%x", static_cast<unsigned>(code < 0 ? -code : code), static_cast<unsigned>(flags));
+  else if (last >= ESP_ERR_MBEDTLS_CERT_PARTLY_OK && last <= ESP_ERR_MBEDTLS_SSL_TICKET_SETUP_FAILED)
+    snprintf(out, cap, "tls_setup:0x%x", static_cast<unsigned>(last));  // for example an unparsable CA PEM
+  else if (last >= ESP_ERR_ESP_TLS_CANNOT_RESOLVE_HOSTNAME && last <= ESP_ERR_ESP_TLS_TCP_CLOSED_FIN)
+    snprintf(out, cap, "tcp:0x%x", static_cast<unsigned>(last));
+  else
+    snprintf(out, cap, "connect:0x%x", static_cast<unsigned>(last));  // ambiguous
+}
 class Esp32WifiIo : public WifiIo {
  public:
   bool reset() override {
@@ -65,8 +81,7 @@ class Esp32WifiIo : public WifiIo {
                       const char *ca, bool &handshaking) override {
     if (!tls_) {
       tls_ = esp_tls_init();
-      lastTls_ = sawHandshake_ = false;
-      lastCode_ = lastFlags_ = 0;
+      failure_[0] = 0;
       if (!tls_) return Progress::Failed;
       memset(&tlsConfig_, 0, sizeof tlsConfig_);
       tlsConfig_.non_block = true;
@@ -88,11 +103,10 @@ class Esp32WifiIo : public WifiIo {
     }
     const int result = esp_tls_conn_new_async(ip, strlen(ip), port, &tlsConfig_, tls_);
     handshaking = tls_->conn_state == ESP_TLS_HANDSHAKE;
-    sawHandshake_ = sawHandshake_ || handshaking;
     if (result < 0) {  // keep the reason; the record goes with the connection
-      lastTls_ = sawHandshake_;
-      lastCode_ = lastFlags_ = 0;
-      esp_tls_get_and_clear_last_error(tls_->error_handle, &lastCode_, &lastFlags_);
+      int code = 0, flags = 0;
+      const esp_err_t last = esp_tls_get_and_clear_last_error(tls_->error_handle, &code, &flags);
+      classifyConnectFailure(last, code, flags, failure_, sizeof failure_);
     }
     return result == 1 ? Progress::Ready : result < 0 ? Progress::Failed : Progress::Pending;
   }
@@ -104,13 +118,7 @@ class Esp32WifiIo : public WifiIo {
     if (!tls_) return -1;
     return translate(esp_tls_conn_read(tls_, data, capacity));
   }
-  // mbedtls error (for example -0x2700, certificate verification failed) and
-  // verify flags (for example 0x4, the name does not match the certificate).
-  void connectFailure(bool &tlsStage, int &code, int &verifyFlags) override {
-    tlsStage = lastTls_;
-    code = lastCode_;
-    verifyFlags = lastFlags_;
-  }
+  void connectFailure(char *detail, size_t cap) override { snprintf(detail, cap, "%s", failure_); }
   bool linkInfo(char *ip, size_t ipCap, char *mac, size_t macCap, int &rssiDbm) override {
     uint8_t m[6];
     if (esp_wifi_get_mac(WIFI_IF_STA, m) == ESP_OK)  // fails until Wi-Fi has started
@@ -158,8 +166,7 @@ class Esp32WifiIo : public WifiIo {
   char dnsHost_[128] = {};
   ip_addr_t dnsAddress_ = {};
   esp_tls_t *tls_ = nullptr;
-  bool sawHandshake_ = false, lastTls_ = false;
-  int lastCode_ = 0, lastFlags_ = 0;
+  char failure_[32] = {};
   esp_tls_cfg_t tlsConfig_ = {};
 };
 WifiSettings compiledSettings(const char *ssid, const char *password) {

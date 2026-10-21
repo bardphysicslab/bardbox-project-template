@@ -31,6 +31,7 @@ class FakeTransport : public bbcore::Transport {
   const char *linkIp = "192.0.2.10";
   const char *linkMac = "02:00:5e:10:20:30";
   int linkRssi = -61;
+  const char *failDetail = "";  // TransportOutcome::detail for ConnectionFailed
   const char *linkReceiver = "https://receiver.invalid";
 
   const char *name() const override { return "fake"; }
@@ -68,7 +69,10 @@ class FakeTransport : public bbcore::Transport {
     out.kind = bbcore::TransportOutcome::Kind::HttpStatus;
     out.httpStatus = current_.http;
     switch (current_.mode) {
-      case Mode::ConnectionFailed: out.kind = bbcore::TransportOutcome::Kind::ConnectionFailed; break;
+      case Mode::ConnectionFailed:
+        out.kind = bbcore::TransportOutcome::Kind::ConnectionFailed;
+        snprintf(out.detail, sizeof out.detail, "%s", failDetail);
+        break;
       case Mode::Malformed: out.kind = bbcore::TransportOutcome::Kind::Malformed; break;
       case Mode::NoResponse: out.kind = bbcore::TransportOutcome::Kind::NoResponse; break;
       case Mode::OtherAttempt: out.attemptId = attempt_ - 1; break;  // a late answer to an older attempt

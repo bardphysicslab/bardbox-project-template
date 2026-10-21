@@ -361,7 +361,7 @@ void BardBoxSerial::writeInfo(SerialLine &line) {
   line.text(" wifi_ssid=");
   hexText(line, w.ssid);
   line.text(" receiver=").text(w.receiver[0] ? w.receiver : "-");
-  line.text(" net_error=").text(st.netError);  // last connection failure: link|dns|tcp|tls:-0x..:0x..|send
+  line.text(" net_error=").text(w.netError);  // most recent connection failure (historical), "-" none
   line.end();
 }
 

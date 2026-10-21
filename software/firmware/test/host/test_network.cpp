@@ -157,7 +157,9 @@ static void test_failures_retain_head_then_accept() {
   runUntil(box, [&] { return acked(box) >= 1; }, 120000);
   CHECK(t.bodies.size() == plans);
   const std::string head = t.bodies.empty() ? "" : queueSeq(t.bodies[0]);
-  for (size_t i = 0; i < t.bodies.size(); ++i) CHECK(t.bodies[i] == t.bodies[0]);  // same copied record
+  // Same copied record every time; device_status describes each send and may differ.
+  const auto record = [](const std::string &b) { return b.substr(0, b.find(",\"device_status\"")); };
+  for (size_t i = 0; i < t.bodies.size(); ++i) CHECK(record(t.bodies[i]) == record(t.bodies[0]));
   CHECK(t.aborts == 6);
   const std::string info = ask(box, io, "INFO");
   CHECK(field(info, "net_acked") == "1");
@@ -424,6 +426,16 @@ static void test_wifi_diagnostics_in_info_and_payload() {
   CHECK(jsonField(body, "mac") == field(info, "mac") && jsonField(body, "rssi_dbm") == field(info, "rssi_dbm"));
   CHECK(jsonField(body, "wifi_ssid") == unhex(field(info, "wifi_ssid")) && jsonField(body, "receiver") == field(info, "receiver"));
   CHECK(body.find("\"uid\":\"unassigned\"") != std::string::npos);  // the record itself is unchanged
+  CHECK(field(info, "net_error") == "-" && body.find("\"net_error\":null") != std::string::npos);
+
+  // net_error is historical: the last failure, still reported after a success.
+  t.failDetail = "tls:-0x2700:0x4";
+  t.plans = {Plan(Mode::ConnectionFailed), Plan(Mode::Respond, 201)};
+  const size_t before = t.bodies.size();
+  runUntil(box, [&] { return t.bodies.size() >= before + 2; }, 8000);
+  const std::string after = t.bodies.back();
+  info = ask(box, io, "INFO");
+  CHECK(field(info, "net_error") == "tls:-0x2700:0x4" && jsonField(after, "net_error") == field(info, "net_error"));
 
   // Disconnected: IP and RSSI unavailable, never the last value; MAC kept.
   t.linkUp = false;
@@ -456,7 +468,7 @@ static void test_info_worst_case_fits() {
   st.link.rssiDbm = -127;
   memset(st.link.ssid, '"', 32);
   memset(st.link.receiver, 'r', sizeof st.link.receiver - 1);
-  snprintf(st.netError, sizeof st.netError, "%s", "tls:-0x7fffffff:0xffffffff");
+  snprintf(st.link.netError, sizeof st.link.netError, "%s", "tls:-0x7fffffff:0xffffffff");
   struct Source : bbcore::SerialDataSource {
     bbcore::SerialStatus s;
     void status(bbcore::SerialStatus &out) override { out = s; }

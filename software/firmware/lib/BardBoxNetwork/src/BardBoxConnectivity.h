@@ -30,6 +30,10 @@ struct ConnectivityStatus {
   int16_t rssiDbm = 0;
   char ssid[33] = {};       // effective SSID this boot (saved setting or default)
   char receiver[160] = {};  // configured upload endpoint as scheme://host[:port] only
+  // Historical, not current state: the most recent connection failure since
+  // start ("-" none): link, dns, tcp:0x.., tls_setup:0x.., tls:-0x..:0x..,
+  // connect[:0x..] (unclassified) or send. A later success does not clear it.
+  char netError[32] = "-";
 };
 
 }  // namespace bbcore

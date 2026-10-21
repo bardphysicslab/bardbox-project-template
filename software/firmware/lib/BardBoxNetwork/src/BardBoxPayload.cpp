@@ -143,6 +143,7 @@ size_t serializeDeliveryCandidate(const Record &r, const QueueToken &token, char
     else j.raw(",\"rssi_dbm\":null");
     textOrNull(j, "wifi_ssid", sender->ssid);
     textOrNull(j, "receiver", sender->receiver);
+    textOrNull(j, "net_error", strcmp(sender->netError, "-") == 0 ? "" : sender->netError);
     j.raw("}");
   }
   j.raw("}");

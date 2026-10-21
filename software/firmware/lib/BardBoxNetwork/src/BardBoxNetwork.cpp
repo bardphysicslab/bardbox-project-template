@@ -59,6 +59,7 @@ void BardBoxNetwork::refreshLink() {
     c.rssiKnown = false;
     c.rssiDbm = 0;
   }
+  memcpy(c.netError, stats_.lastError, sizeof c.netError);
   c.ip[sizeof c.ip - 1] = c.mac[sizeof c.mac - 1] = c.receiver[sizeof c.receiver - 1] = 0;
   stats_.link = c;
 }
@@ -115,6 +116,7 @@ void BardBoxNetwork::finish(uint32_t nowMs, const TransportOutcome &o, DeliveryM
       return fail(nowMs, reason);
     case TransportOutcome::Kind::ConnectionFailed:
       snprintf(stats_.lastError, sizeof stats_.lastError, "%s", o.detail[0] ? o.detail : "unknown");
+      memcpy(stats_.link.netError, stats_.lastError, sizeof stats_.link.netError);
       return fail(nowMs, "connection_failed");
     case TransportOutcome::Kind::Malformed: return fail(nowMs, "malformed");
     case TransportOutcome::Kind::NoResponse: return fail(nowMs, "no_response");

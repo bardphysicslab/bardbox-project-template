@@ -125,14 +125,9 @@ void WifiHttpsTransport::connectionFailed(const char *stage) {
   char detail[sizeof result_.detail];
   snprintf(detail, sizeof detail, "%s", stage);
   if (strcmp(stage, "connect") == 0) {
-    bool tls = false;
-    int code = 0, flags = 0;
-    io_.connectFailure(tls, code, flags);
-    if (tls)
-      snprintf(detail, sizeof detail, "tls:-0x%04x:0x%x", static_cast<unsigned>(code < 0 ? -code : code),
-               static_cast<unsigned>(flags));
-    else
-      snprintf(detail, sizeof detail, "tcp");
+    io_.connectFailure(detail, sizeof detail);
+    detail[sizeof detail - 1] = 0;
+    if (!detail[0]) snprintf(detail, sizeof detail, "connect");  // not classified
   }
   finish(TransportOutcome::Kind::ConnectionFailed);
   memcpy(result_.detail, detail, sizeof detail);

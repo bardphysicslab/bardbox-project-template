@@ -23,11 +23,11 @@ class WifiIo {
   virtual void close() = 0;
   // Diagnostics: station MAC (once Wi-Fi started), and IPv4 and RSSI while
   // connected. Returns whether the station is connected. Bounded, no I/O wait.
-  // After connectTls returned Failed: whether the TLS handshake had begun, and
-  // the library's numeric error and certificate-verify flags (0 if unknown).
-  virtual void connectFailure(bool &tlsStage, int &code, int &verifyFlags) {
-    tlsStage = false;
-    code = verifyFlags = 0;
+  // After connectTls returned Failed: a bounded, numbers-only classification
+  // of that failure ("tcp:...", "tls_setup:...", "tls:-0x<error>:0x<flags>"),
+  // or empty when the provider cannot tell.
+  virtual void connectFailure(char *detail, size_t cap) {
+    if (cap) detail[0] = 0;
   }
   virtual bool linkInfo(char *ip, size_t ipCap, char *mac, size_t macCap, int &rssiDbm) {
     (void)ipCap; (void)macCap; (void)rssiDbm;

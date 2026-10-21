@@ -43,8 +43,8 @@ class FakeWifi : public WifiIo {
     memcpy(buf,response.data()+readAt,n); readAt+=n; return static_cast<int>(n);
   }
   void close() override { ++closes; }
-  bool failTls = true; int failCode = 0x2700, failFlags = 0x4;
-  void connectFailure(bool &tls, int &code, int &flags) override { tls=failTls; code=failCode; flags=failFlags; }
+  std::string failure = "tls:-0x2700:0x4";  // the provider's classification
+  void connectFailure(char *detail, size_t cap) override { snprintf(detail,cap,"%s",failure.c_str()); }
   bool linkInfo(char *ip, size_t ipCap, char *mac, size_t macCap, int &rssi) override {
     snprintf(mac,macCap,"02:00:5e:10:20:30");
     if (!linked) { ip[0]=0; return false; }
@@ -153,9 +153,9 @@ static void test_failure_detail() {
   CHECK(t.start(1,reinterpret_cast<const uint8_t *>("42"),2,0));
   for (unsigned now=0; now<50 && t.step(now,out)!=TransportPhase::Done; ++now) {}
   CHECK(out.kind==TransportOutcome::Kind::ConnectionFailed && strcmp(out.detail,"tls:-0x2700:0x4")==0);
-  io.failTls=false; CHECK(t.start(2,reinterpret_cast<const uint8_t *>("42"),2,100));
+  io.failure=""; CHECK(t.start(2,reinterpret_cast<const uint8_t *>("42"),2,100));
   for (unsigned now=100; now<150 && t.step(now,out)!=TransportPhase::Done; ++now) {}
-  CHECK(strcmp(out.detail,"tcp")==0);
+  CHECK(strcmp(out.detail,"connect")==0);  // unclassified stays explicit, never guessed as tcp
   FakeWifi dnsIo; dnsIo.dnsFails=true; WifiHttpsTransport d(dnsIo,settings());
   CHECK(d.start(3,reinterpret_cast<const uint8_t *>("42"),2,0));
   for (unsigned now=0; now<50 && d.step(now,out)!=TransportPhase::Done; ++now) {}
