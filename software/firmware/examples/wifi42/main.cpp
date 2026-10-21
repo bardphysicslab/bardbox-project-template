@@ -2,6 +2,7 @@
 #ifndef FIRMWARE_VERSION
 #define FIRMWARE_VERSION ""  // Student: set your firmware version before a device build.
 #endif
+
 #include <Arduino.h>
 #include <BardBoxInterface.h>
 
