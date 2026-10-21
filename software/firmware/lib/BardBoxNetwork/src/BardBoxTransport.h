@@ -22,7 +22,10 @@ struct TransportOutcome {
   int httpStatus;
   uint32_t attemptId;     // the attempt this outcome belongs to
   bool endpointVerified;  // response came from the configured, verified endpoint
-  TransportOutcome() : kind(Kind::None), httpStatus(0), attemptId(0), endpointVerified(false) {}
+  // ConnectionFailed only: where it failed, without secrets: "link", "dns",
+  // "tcp", "tls:-0x<library error>:0x<certificate verify flags>" or "send".
+  char detail[32];
+  TransportOutcome() : kind(Kind::None), httpStatus(0), attemptId(0), endpointVerified(false), detail() {}
 };
 
 // Injected transport. Every call must return promptly (bounded work, no

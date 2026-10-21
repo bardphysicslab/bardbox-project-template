@@ -213,6 +213,8 @@ static void test_failure_names() {
       fprintf(stderr, "case %s: got %s\n", cases[i].expect, n.lastOutcome);
     }
     CHECK(n.acked == 0 && n.state == NetworkState::Backoff && n.retryInMs == BARDBOX_NETWORK_RETRY_BASE_MS);
+    if (strcmp(cases[i].expect, "connection_failed") == 0)
+      CHECK(strcmp(n.lastError, "unknown") == 0 && field(ask(box, io, "INFO"), "net_error") == "unknown");
     CHECK(box.bufferForDelivery().status().stored >= 1);
   }
 }
@@ -454,6 +456,7 @@ static void test_info_worst_case_fits() {
   st.link.rssiDbm = -127;
   memset(st.link.ssid, '"', 32);
   memset(st.link.receiver, 'r', sizeof st.link.receiver - 1);
+  snprintf(st.netError, sizeof st.netError, "%s", "tls:-0x7fffffff:0xffffffff");
   struct Source : bbcore::SerialDataSource {
     bbcore::SerialStatus s;
     void status(bbcore::SerialStatus &out) override { out = s; }

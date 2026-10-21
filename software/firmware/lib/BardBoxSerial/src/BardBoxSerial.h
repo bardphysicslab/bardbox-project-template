@@ -61,6 +61,7 @@ struct SerialStatus {
   uint32_t netRetryMs = 0;
   char netLast[24] = "none";
   ConnectivityStatus link;  // Network-owned Wi-Fi diagnostics
+  char netError[32] = "-";  // last connection failure detail
   uint8_t registrationErrors = 0;
 };
 

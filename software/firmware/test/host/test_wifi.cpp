@@ -43,6 +43,8 @@ class FakeWifi : public WifiIo {
     memcpy(buf,response.data()+readAt,n); readAt+=n; return static_cast<int>(n);
   }
   void close() override { ++closes; }
+  bool failTls = true; int failCode = 0x2700, failFlags = 0x4;
+  void connectFailure(bool &tls, int &code, int &flags) override { tls=failTls; code=failCode; flags=failFlags; }
   bool linkInfo(char *ip, size_t ipCap, char *mac, size_t macCap, int &rssi) override {
     snprintf(mac,macCap,"02:00:5e:10:20:30");
     if (!linked) { ip[0]=0; return false; }
@@ -144,12 +146,27 @@ static void test_link_status() {
   ConnectivityStatus d; io.linked=false; t.linkStatus(d);
   CHECK(d.wifi==WifiState::Disconnected && !d.rssiKnown && d.ip[0]==0 && strcmp(d.mac,"02:00:5e:10:20:30")==0);
 }
+// Connection failures name their stage with numbers only (template#36).
+static void test_failure_detail() {
+  FakeWifi io; io.tlsFails=true; WifiHttpsTransport t(io,settings());
+  TransportOutcome out;
+  CHECK(t.start(1,reinterpret_cast<const uint8_t *>("42"),2,0));
+  for (unsigned now=0; now<50 && t.step(now,out)!=TransportPhase::Done; ++now) {}
+  CHECK(out.kind==TransportOutcome::Kind::ConnectionFailed && strcmp(out.detail,"tls:-0x2700:0x4")==0);
+  io.failTls=false; CHECK(t.start(2,reinterpret_cast<const uint8_t *>("42"),2,100));
+  for (unsigned now=100; now<150 && t.step(now,out)!=TransportPhase::Done; ++now) {}
+  CHECK(strcmp(out.detail,"tcp")==0);
+  FakeWifi dnsIo; dnsIo.dnsFails=true; WifiHttpsTransport d(dnsIo,settings());
+  CHECK(d.start(3,reinterpret_cast<const uint8_t *>("42"),2,0));
+  for (unsigned now=0; now<50 && d.step(now,out)!=TransportPhase::Done; ++now) {}
+  CHECK(strcmp(out.detail,"dns")==0);
+}
 int main() {
   FakeWifi idleIo; WifiHttpsTransport idle(idleIo,settings());
   idle.service(0); CHECK(idleIo.starts==1); // connect even before first record
   idleIo.linked=false; idle.service(100); CHECK(idleIo.starts==1);
   idle.service(30000); CHECK(idleIo.starts==2);
-  test_configuration();test_link_status();test_partial_io();test_bad_responses();test_failures_and_cancel();
+  test_configuration();test_link_status();test_failure_detail();test_partial_io();test_bad_responses();test_failures_and_cancel();
   if(failures) return 1;
   puts("Wi-Fi HTTPS adapter tests pass (fake radio/DNS/TLS I/O; no network)");
 }

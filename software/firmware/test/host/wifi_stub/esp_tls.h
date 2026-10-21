@@ -15,7 +15,9 @@ struct esp_tls_cfg_t {
  unsigned cacert_bytes;
  const char *common_name;
 };
-struct esp_tls_t { int conn_state=ESP_TLS_INIT, sockfd=1, calls=0; fd_set rset,wset; };
+typedef void *esp_tls_error_handle_t;
+struct esp_tls_t { int conn_state=ESP_TLS_INIT, sockfd=1, calls=0; fd_set rset,wset; esp_tls_error_handle_t error_handle=nullptr; };
+inline int esp_tls_get_and_clear_last_error(esp_tls_error_handle_t, int *code, int *flags) { *code=0x2700; *flags=0x4; return 0; }
 extern int tlsCreated, tlsDestroyed, tlsPendingChecks;
 extern std::string tlsSent;
 extern size_t tlsReadAt;

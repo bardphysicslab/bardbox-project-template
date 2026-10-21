@@ -185,5 +185,6 @@ void BardBoxInterface::status(bbcore::SerialStatus &out) {
   out.netRetryMs = n.retryInMs;
   memcpy(out.netLast, n.lastOutcome, sizeof out.netLast);
   out.link = n.link;
+  memcpy(out.netError, n.lastError, sizeof out.netError);
   out.registrationErrors = measurements_.registrationErrors();
 }

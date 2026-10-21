@@ -113,7 +113,9 @@ void BardBoxNetwork::finish(uint32_t nowMs, const TransportOutcome &o, DeliveryM
       char reason[16];
       snprintf(reason, sizeof reason, "http_%d", o.httpStatus);
       return fail(nowMs, reason);
-    case TransportOutcome::Kind::ConnectionFailed: return fail(nowMs, "connection_failed");
+    case TransportOutcome::Kind::ConnectionFailed:
+      snprintf(stats_.lastError, sizeof stats_.lastError, "%s", o.detail[0] ? o.detail : "unknown");
+      return fail(nowMs, "connection_failed");
     case TransportOutcome::Kind::Malformed: return fail(nowMs, "malformed");
     case TransportOutcome::Kind::NoResponse: return fail(nowMs, "no_response");
     default: return fail(nowMs, "no_outcome");
