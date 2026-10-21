@@ -7,8 +7,9 @@ Typical flow:
    ignored `software/app/config/app_config.json` for deployment values.
 3. Set `poll_interval_ms` and `node_stale_after_s`.
 4. Replace the example driver with deployment drivers.
-5. Replace the PlatformIO firmware example under `software/firmware/` with
-   device firmware.
+5. Obtain device firmware through the separately scoped [Reference firmware](
+   https://github.com/bardphysicslab/BardBox-Reference/tree/main/software/firmware) proving/release workflow; this template ships no device firmware.
+   Selecting/flashing a device is a separate authorized operation.
 6. Install requirements on the Raspberry Pi.
 7. Adapt and install the systemd service and watchdog examples under `deploy/`.
 8. Verify both `/health` and three-failure watchdog recovery.

@@ -1,7 +1,8 @@
 # Device Instructions
 
-Template firmware uses the BardBox compact protocol and the current node UID
-standard. The canonical specifications live in the separate `bardbox` repo:
+This template has no firmware source. Current firmware development/proving is
+in [BardBox-Reference](https://github.com/bardphysicslab/BardBox-Reference/tree/main/software/firmware). The following is a device-integration checklist;
+the canonical protocol/UID specifications live in the separate `bardbox` repo:
 
 - [Device Instructions](https://github.com/bardphysicslab/bardbox/blob/main/docs/device-instructions.md)
 - [BardBox Web Node Protocol](https://github.com/bardphysicslab/bardbox/blob/main/docs/web-node-protocol.md)

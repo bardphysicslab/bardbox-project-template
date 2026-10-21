@@ -6,6 +6,7 @@ The template implements them; do not copy shared specifications here.
 
 | Reference | Owning reasoning | Implementation status |
 | --- | --- | --- |
+| TEMPLATE-FW-REMOVE-1: current firmware proving/development is in Reference; remove duplicate Template source/support | [Accepted removal](https://github.com/bardphysicslab/bardbox-project-template/issues/36#issuecomment-6315599802) | Template firmware removed in this change; server remains. Later reviewed promotion/packaging under #36, not automatically recreated here |
 | TEMPLATE-PROVING-1: prove new capabilities in Reference first, then promote reusable implementation into Template | [Accepted direction](https://github.com/bardphysicslab/bardbox-project-template/issues/31#issuecomment-6281614801); [October 21 clarification](https://github.com/bardphysicslab/bardbox-project-template/issues/31#issuecomment-6314220319) | Tracked promotion is part of capability completion; after promotion Reference consumes the maintained implementation through a reviewed dependency boundary. No runtime extraction or dependency mechanism is implemented by these notes |
 | BB-001 and BB-002 (shared ingestion decisions) | [BardBox index](https://github.com/bardphysicslab/bardbox/blob/main/docs/DECISIONS.md); existing [ingestion discussion](https://github.com/bardphysicslab/bardbox-project-template/issues/15) | Proposed shared implementation under [milestone](https://github.com/bardphysicslab/bardbox-project-template/issues/16); no implementation claimed by adding this index |
 

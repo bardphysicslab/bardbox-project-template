@@ -95,27 +95,23 @@ Apply the same outcomes to other transports, but do not copy HTTP-specific imple
 
 ## Compatibility
 
-Add health and diagnostic fields without breaking existing payloads, commands, dashboards, or stored records. Preserve protocol-version compatibility; firmware and protocol versions are separate. Test fault paths deterministically: the health headers take an explicit `nowMs`, so fault sequences can be driven by a host test or a recorded simulated run. There is no firmware test harness or firmware CI on `main`; record which evidence you used. Update the firmware version for any deployed firmware behavior change.
+Add health and diagnostic fields without breaking existing payloads, commands, dashboards, or stored records. Preserve protocol-version compatibility; firmware and protocol versions are separate. Test fault paths deterministically: the health headers take an explicit `nowMs`, so fault sequences can be driven by a host test or a recorded simulated run. Firmware tests and target evidence currently belong to Reference; this template does not contain firmware. Record the actual verification level. Update the firmware version for any deployed firmware behavior change.
 
-## Firmware sensor reliability
+## Current firmware home
 
-When adding or changing BardBox firmware:
+Kornelis explicitly directed [removing the duplicate firmware from this template](https://github.com/bardphysicslab/bardbox-project-template/issues/36#issuecomment-6315599802).
+`software/firmware/` and its firmware-only tests/demo receiver are absent here.
+Current firmware development, testing and cleanup belong in
+[BardBox-Reference](https://github.com/bardphysicslab/BardBox-Reference/tree/main/software/firmware); consult that repository's instructions/checkpoint
+and [Reference #5](https://github.com/bardphysicslab/BardBox-Reference/issues/5).
+Do not recreate or develop another firmware copy here. Later reusable firmware
+promotion/packaging is tracked by [#36](https://github.com/bardphysicslab/bardbox-project-template/issues/36)
+and needs a separately reviewed scope; this removal does not start it.
 
-1. Use the shared sensor-health/recovery layer in `software/firmware/include/`
-   for attached sensors: `BardBoxSensorHealth.h`, plus the optional
-   `BardBoxSensorValueRule.h` and `BardBoxI2CRecovery.h`. The older root
-   `firmware/` copy with a different `SensorHealthTracker` API was retired
-   (see Git history); do not reintroduce a second same-named class.
-2. Keep the common layer sensor-agnostic. Never hard-code a sensor-specific physical range into shared health logic.
-3. Put measurement-specific validity rules with the sensor/measurement definition or project configuration. Rules may include units, min/max, max delta, max rate of change, checksum validation, internal fault flags, or other device-specific constraints.
-4. Treat transport errors, invalid samples, stale data, and device fault indications as distinct fault classes.
-5. Do not publish a sample as valid after its driver/validator rejects it.
-6. Use transport recovery helpers only when the firmware uses that transport. I2C recovery is an opt-in layer above `Wire.h`; do not fork or replace Arduino transport libraries.
-7. Recovery must be bounded and observable: count failures, apply cooldowns, report health/diagnostics, and avoid infinite reset loops.
-8. Preserve backwards compatibility by default. Existing node configs must still compile, and existing UID, protocol, commands, payload/CSV fields, and deployed behavior must not change unless a separately approved migration requires it.
-9. Prefer additive defaults: new configuration knobs must have defaults so older project configs remain valid.
-10. A project may make validation stricter than the template, but it may not weaken the shared compatibility and safety requirements without explicit maintainer approval.
-
-Canonical platform work is tracked in `bardphysicslab/bardbox` issue #13.
-
-Use tracked `config.example.h` and ignored local `config.h` for firmware configuration. Preserve values when migrating legacy private `secrets.h`; never replace them with example defaults. The repository-layout standard for ECAD/MCAD and software locations (`docs/repository-layout.md`) is proposed in bardbox PR #23 and is not yet on bardbox `main`.
+Shared firmware contracts, recovery, sensor-health and protocol requirements
+remain in `bardbox`; use those maintained standards and Reference's module
+interfaces rather than deleted local headers. Preserve UID/payload/settings
+compatibility and existing private configuration when future promotion is scoped.
+Private local firmware settings/build material were retained in a private recovery
+store outside repositories, never in Git. The existing ignore rules protect them
+when older branches are checked out; never substitute safe examples for secrets.
