@@ -23,7 +23,12 @@ Routine fixes stay brief; shared specifications are not copied into this templat
 Workflow:
 
 1. Protocol or UI rule changes are documented first in `bardbox`.
-2. Then they are implemented in `bardbox-project-template`.
+2. New capabilities are developed and proven in `BardBox-Reference` first,
+   then verified reusable implementation, tests and build/configuration guidance
+   are promoted into `bardbox-project-template` as tracked completion work
+   ([TEMPLATE-PROVING-1](https://github.com/bardphysicslab/bardbox-project-template/issues/31#issuecomment-6281614801)).
+   After promotion, Reference consumes the maintained implementation through the
+   reviewed dependency boundary and retains its example configuration/demos.
 3. New monitor repos are created from `bardbox-project-template`.
 4. Existing monitor repos like GoLab, RKC, Solar, and CESH Air should be updated from the template standard when practical.
 5. Project-specific repos should not invent protocol behavior unless it is promoted back into `bardbox` and `bardbox-project-template`.

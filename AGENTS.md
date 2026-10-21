@@ -39,6 +39,35 @@ This is a BardBox project: also read bardbox's root `AGENTS.md` and
 `ARCHITECTURE.md` at one resolved `main` commit of `bardphysicslab/bardbox`,
 and the detailed standards relevant to the task.
 
+## Reference-first capability workflow
+
+Follow [TEMPLATE-PROVING-1](https://github.com/bardphysicslab/bardbox-project-template/issues/31#issuecomment-6281614801)
+and the [October 21 clarification](https://github.com/bardphysicslab/bardbox-project-template/issues/31#issuecomment-6314220319),
+within the [shared development workflow](https://github.com/bardphysicslab/engineering-standards/blob/main/development-workflow.md).
+
+- This repository is the maintained reusable implementation home **after
+  promotion**. Develop and prove new capabilities in `BardBox-Reference` first;
+  do not begin them here merely because this is the template. Maintenance of an
+  already-promoted module stays with its maintained owner.
+- Before work, check the [server roadmap/current issue checkpoints](https://github.com/bardphysicslab/bardbox-project-template/issues/31),
+  [Reference checkpoint](https://github.com/bardphysicslab/BardBox-Reference/issues/1),
+  [implementation decision index](docs/DECISIONS.md), applicable contracts, code
+  and verification evidence. Reuse existing work and preserve local changes.
+- A reusable capability is not complete until its tracked promotion is resolved:
+  name the owning issue, pinned proven Reference revision, reviewed interfaces,
+  tests and independent configured-consumer evidence. Promote reusable code,
+  tests, configuration/examples and build/run guidance; do not blindly copy an
+  instance or treat unreviewed contract proposals as accepted.
+- After promotion, Reference keeps example configuration/demonstrations and
+  consumes the maintained implementation through an explicitly reviewed
+  dependency/version boundary, without competing maintained copies. The exact
+  dependency mechanism belongs to the scoped promotion contract.
+- Shared contracts, platform architecture and Mermaid diagrams remain in
+  `bardbox`; shared engineering guidance remains in `engineering-standards`.
+  Link those owners and reconcile accepted changes rather than duplicate them.
+  No new repository/container or immediate runtime migration is required by this
+  workflow; implementation, review, merge and deployment remain separate.
+
 ## BardBox standards first
 
 The canonical standards live in the separate `bardbox` repository. Do not create a project-local replacement for a BardBox-wide rule. For Web Nodes, read:
