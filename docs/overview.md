@@ -9,7 +9,7 @@ It includes:
 - an example driver
 - normalized freshness-aware API responses
 - an RKC-style dark BardBox dashboard
-- a PlatformIO firmware example
+- a link to [Reference firmware](https://github.com/bardphysicslab/BardBox-Reference/tree/main/software/firmware), the current development/proving home (no local firmware copy)
 - starter tests and deployment scripts
 
 The standards source of truth is the separate `bardbox` repo. Keep this

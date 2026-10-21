@@ -9,5 +9,6 @@ Expected layers:
 3. Pi backend that applies freshness policy.
 4. Dashboard that displays status badges and null values correctly.
 
-Firmware development uses VS Code + PlatformIO. Devices report readings; the Pi
+Firmware development/proving uses VS Code + PlatformIO in
+[BardBox-Reference](https://github.com/bardphysicslab/BardBox-Reference/tree/main/software/firmware); no firmware is shipped in this template. Devices report readings; the Pi
 decides whether a node is stale or unavailable.

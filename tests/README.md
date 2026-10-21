@@ -20,3 +20,7 @@ Run:
 ```bash
 python3 -m unittest discover -s tests
 ```
+
+Firmware-specific host/layout/configuration tests and the counter/42 demo
+receiver tests live with [Reference firmware](https://github.com/bardphysicslab/BardBox-Reference/tree/main/software/firmware).
+This suite covers the remaining template server and tooling.

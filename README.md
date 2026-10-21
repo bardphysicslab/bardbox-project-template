@@ -5,7 +5,8 @@ template repo. New monitor projects should be created from this repo.
 
 The canonical standards live in the separate `bardbox` repo. This template
 implements those standards in working code: FastAPI backend, example driver,
-dark BardBox dashboard, PlatformIO firmware example, scripts, docs, and tests.
+dark BardBox dashboard, scripts, docs, and tests. Current firmware development
+and proving live in [BardBox-Reference](https://github.com/bardphysicslab/BardBox-Reference/tree/main/software/firmware); this template intentionally contains no firmware copy.
 
 ## Decision history and contribution workflow
 
@@ -51,7 +52,7 @@ Goal: one documented standard, one reference implementation, many project instan
 - root `bardbox.toml` project/service/config metadata for shared BardBox tooling
 - isolated Python 3.12 development environment
 - Dev Container and GitHub Actions test environment
-- VS Code + PlatformIO firmware example
+- links to the current firmware proving home in Reference
 - tests for stale/unavailable behavior
 
 ## Development Setup
@@ -116,7 +117,7 @@ do not `cd software/app` and run `uvicorn main:app`.
 1. Edit the root `bardbox.toml` project and service metadata.
 2. Edit `software/app/config/app_config.example.json`.
 3. Replace or add drivers under `software/app/drivers/`.
-4. Replace the PlatformIO firmware example under `software/firmware/`.
+4. Follow [Reference firmware](https://github.com/bardphysicslab/BardBox-Reference/tree/main/software/firmware) for device development/proving; do not create a second firmware copy here.
 5. Adjust dashboard labels and metric choices while preserving BardBox status/null behavior.
 6. Add project-specific docs under `docs/`.
 
@@ -130,8 +131,13 @@ Historical logs are not rewritten.
 
 ## Firmware
 
-Firmware uses VS Code + PlatformIO, not the Arduino IDE. Arduino framework
-libraries are acceptable through PlatformIO.
+Current firmware source, build definitions, host tests and demo receiver live in
+[BardBox-Reference](https://github.com/bardphysicslab/BardBox-Reference/tree/main/software/firmware). The duplicate tree and firmware-only support were
+[removed at Kornelis's request](https://github.com/bardphysicslab/bardbox-project-template/issues/36#issuecomment-6315599802); Template retains its server app and
+normalized diagnostic receiver. Reference firmware is still under testing and
+cleanup; this pointer does not claim a complete promoted firmware template.
+Later reusable promotion/packaging is tracked in [#36](https://github.com/bardphysicslab/bardbox-project-template/issues/36).
+Firmware uses VS Code + PlatformIO in Reference; no firmware build is run here.
 
 ## Repository Layout
 
@@ -141,8 +147,7 @@ project/
 ├── .devcontainer/
 ├── .github/workflows/
 ├── software/
-│   ├── app/
-│   └── firmware/
+│   └── app/
 ├── hardware/
 │   ├── ecad/
 │   └── mcad/
@@ -154,16 +159,6 @@ project/
 ├── requirements.txt
 ├── requirements-dev.txt
 └── README.md
-```
-
-Firmware-specific structure:
-
-```text
-software/firmware/
-  platformio.ini
-  src/main.cpp
-  include/
-  lib/
 ```
 
 ## Standards Reference

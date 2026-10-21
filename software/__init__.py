@@ -1,1 +1,1 @@
-"""BardBox application and firmware source tree."""
+"""BardBox template application source tree; current firmware proving is in Reference."""
