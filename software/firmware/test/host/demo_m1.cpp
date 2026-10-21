@@ -6,6 +6,7 @@
 
 #include <string>
 
+#include "BardBoxTime.h"
 #include "FakeStorage.h"
 #include "BardBoxTransport.h"
 
@@ -16,6 +17,7 @@ void *g_host_service_arg = nullptr;
 static FakeStorage demoStorage;
 bbcore::StorageAdapter *g_host_demo_storage = &demoStorage;
 bbcore::Transport *g_host_demo_transport = nullptr;  // no endpoint: "unconfigured"
+bbcore::TimeSyncProvider *g_host_demo_time = nullptr;  // no clock: "unavailable"
 
 void setup();
 void loop();

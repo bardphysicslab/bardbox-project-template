@@ -469,6 +469,11 @@ static void test_info_worst_case_fits() {
   memset(st.link.ssid, '"', 32);
   memset(st.link.receiver, 'r', sizeof st.link.receiver - 1);
   snprintf(st.link.netError, sizeof st.link.netError, "%s", "tls:-0x7fffffff:0xffffffff");
+  st.time.state = bbcore::TimeState::Unavailable;  // the longest state name
+  st.time.lastSyncKnown = true;
+  st.time.lastSyncAgeS = 0xffffffffu;
+  snprintf(st.time.utc, sizeof st.time.utc, "%s", "9999-12-31T23:59:59.999Z");
+  st.time.recordTimestamps = false;
   struct Source : bbcore::SerialDataSource {
     bbcore::SerialStatus s;
     void status(bbcore::SerialStatus &out) override { out = s; }

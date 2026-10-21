@@ -24,7 +24,7 @@ class FirmwareHostTests(unittest.TestCase):
         run = self.run_script("run_host_demo.sh")
         self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
         self.assertIn("< ERR SAMPLE_NOT_READY", run.stdout)
-        self.assertIn("< DAT,v2,1,", run.stdout)
+        self.assertIn("< DAT,v3,1,", run.stdout)
         self.assertIn("acquired=unknown", run.stdout)
 
 

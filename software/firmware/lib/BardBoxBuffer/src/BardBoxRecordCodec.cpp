@@ -72,6 +72,9 @@ size_t encodeRecordFrame(const Record &r, uint8_t *out, size_t cap) {
   w.u32(r.seq);
   w.u32(r.dueMs);
   w.u32(r.capturedMs);
+  const RecordedUtc utc = r.recordedUtc == RecordedUtc::NotRecorded ? RecordedUtc::Unsynced : r.recordedUtc;
+  w.u8(static_cast<uint8_t>(utc));
+  w.u64(utc == RecordedUtc::Ntp ? static_cast<uint64_t>(r.recordedUtcMs) : 0);
   w.str(r.attribution.uid, sizeof r.attribution.uid - 1);
   w.str(r.attribution.firmware, sizeof r.attribution.firmware - 1);
   w.str(r.attribution.protocol, sizeof r.attribution.protocol - 1);
@@ -113,7 +116,8 @@ DecodeResult decodeRecordFrame(const uint8_t *data, size_t len, Record &out) {
   for (int i = 0; i < 4; ++i) crc |= static_cast<uint32_t>(data[7 + i]) << (8 * i);
   if (crc32(data + kHeaderBytes, payload) != crc) return DecodeResult::BadChecksum;
   Reader r(data + kHeaderBytes, payload);
-  if (r.u8() != kPayloadSchemaCandidate) return DecodeResult::UnsupportedSchema;
+  const uint8_t schema = r.u8();
+  if (schema != kPayloadSchemaCandidate && schema != kPayloadSchemaNoUtc) return DecodeResult::UnsupportedSchema;
   static Record rec;  // large; decoding is single-threaded (service task)
   rec = Record();
   rec.queueGeneration = r.u32();
@@ -122,6 +126,15 @@ DecodeResult decodeRecordFrame(const uint8_t *data, size_t len, Record &out) {
   rec.seq = r.u32();
   rec.dueMs = r.u32();
   rec.capturedMs = r.u32();
+  if (schema == kPayloadSchemaCandidate) {
+    const uint8_t status = r.u8();
+    const uint64_t utc = r.u64();
+    if (status > static_cast<uint8_t>(RecordedUtc::Disabled)) return DecodeResult::BadFrame;
+    rec.recordedUtc = static_cast<RecordedUtc>(status);
+    rec.recordedUtcMs = rec.recordedUtc == RecordedUtc::Ntp ? static_cast<int64_t>(utc) : 0;
+  } else {
+    rec.recordedUtc = RecordedUtc::NotRecorded;  // queued before record timestamps existed
+  }
   r.str(rec.attribution.uid, sizeof rec.attribution.uid);
   r.str(rec.attribution.firmware, sizeof rec.attribution.firmware);
   r.str(rec.attribution.protocol, sizeof rec.attribution.protocol);

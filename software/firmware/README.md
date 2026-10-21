@@ -36,6 +36,7 @@ software/firmware/
   lib/BardBoxSerial/                 serial commands and wire forms
   lib/BardBoxNetwork/                Wi-Fi/HTTPS, delivery policy/mailbox and candidate JSON
   lib/BardBoxSettings/               saved UID and Wi-Fi settings (override config.h, next boot)
+  lib/BardBoxTime/                   UTC over NTP (one owner), record-creation timestamps
   test/host/                         host tests and demo (simulated)
 ```
 
@@ -44,7 +45,8 @@ Build: `pio run -e feather_s3` fails until `FIRMWARE_VERSION` is set in
 feather_s3_m1_test` builds with an explicit test version. Serial commands:
 `INFO`, `HEADER`, `READ` (latest completed record), `READ_LIVE` (latest cached
 readings), `PING` and the `CONFIG_*` settings commands; `HEADER`, `READ` and
-`READ_LIVE` use a v2 candidate framing pending review (see
+`READ_LIVE` use candidate framings pending review (`HDR`/`DAT,v3` with the
+record's UTC timestamp, `LIVE,v2`; see
 `lib/BardBoxSerial/README.md`).
 
 UID, Wi-Fi SSID and password can be changed over USB serial without a rebuild
@@ -129,7 +131,12 @@ updates can keep the previous image and the saved data. Network OTA, with signed
 images, rollout, health confirmation and rollback, is a later milestone and is not
 implemented by this layout.
 
-## Synthetic Wi-Fi demo
+## Synthetic Wi-Fi demos
+
+[Counter with UTC record timestamps](examples/counter/README.md):
+`pio run -e feather_s3_counter_test` compiles it.
+
+
 
 [Publish 42 through the API](examples/wifi42/README.md) is an isolated test sketch
 and optional HTTPS receiver. `pio run -e feather_s3_wifi42_test` compiles it;

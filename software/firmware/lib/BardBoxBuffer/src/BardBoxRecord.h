@@ -57,18 +57,42 @@ struct RecordAttribution {
   char protocol[17] = {};  // wire protocol in use when recorded (a candidate)
 };
 
+// Where a record's UTC timestamp came from. RTC is reserved for a later adapter.
+enum class UtcSourceKind : uint8_t { Unknown = 0, Ntp = 1 };
+
 // A completed full-node record created at a recording boundary.
+//
+// Recorded-UTC status of a record, fixed when the record is created and
+// stored with it (template#49): Ntp (recordedUtcMs valid), Unsynced (enabled,
+// but no valid UTC yet), Disabled (project turned record timestamps off), or
+// NotRecorded (saved by firmware that had no record timestamps; schema 2).
+enum class RecordedUtc : uint8_t { Unsynced = 0, Ntp = 1, Disabled = 2, NotRecorded = 3 };
+const char *recordedUtcName(RecordedUtc status);
+
+// recordedUtcMs is the UTC time when this record was created at its boundary
+// (not acquisition time, not upload time). It is set once, stored with the
+// record, and never relabelled later.
 struct Record {
   uint32_t bootId = 0;
   uint32_t seq = 0;         // record sequence within this boot
   uint32_t dueMs = 0;       // scheduled boundary (diagnostic)
   uint32_t capturedMs = 0;  // snapshot capture time (monotonic)
+  RecordedUtc recordedUtc = RecordedUtc::Unsynced;
+  int64_t recordedUtcMs = 0;  // milliseconds since 1970-01-01T00:00:00Z, when recordedUtc == Ntp
   uint32_t queueGeneration = 0;  // set when persisted; with queueSeq, the delivery token
   uint32_t queueSeq = 0;
   RecordAttribution attribution;
   uint8_t channelCount = 0;
   ChannelSchema schema[kMaxChannels];
   RecordChannel channels[kMaxChannels];
+};
+
+// Current UTC, implemented by the Time owner. Returns false (and no value)
+// unless a valid time source has set the clock.
+class UtcSource {
+ public:
+  virtual ~UtcSource() {}
+  virtual bool utcNow(int64_t &epochMs, UtcSourceKind &source) = 0;
 };
 
 // Implemented by the owner of the latest-reading cache. Copies one consistent

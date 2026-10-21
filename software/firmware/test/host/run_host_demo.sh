@@ -10,7 +10,7 @@ mkdir -p "$out"
 CXX=${CXX:-c++}
 inc="-I$here/stub -I$fw/src"
 srcs=""
-for lib in BardBoxSerial BardBoxBuffer BardBoxNetwork BardBoxMeasurements BardBoxSettings BardBoxInterface; do
+for lib in BardBoxSerial BardBoxBuffer BardBoxNetwork BardBoxMeasurements BardBoxSettings BardBoxTime BardBoxInterface; do
   inc="$inc -I$fw/lib/$lib/src"
   for f in "$fw/lib/$lib/src"/*.cpp; do [ -e "$f" ] && srcs="$srcs $f"; done
 done
@@ -32,3 +32,11 @@ $CXX -std=c++11 -Wall -Wextra -Werror -DBARDBOX_HOST_DEMO \
   '-DBARDBOX_NETWORK_ENDPOINT="https://receiver.invalid/demo/wifi42"' \
   -I"$here" $inc $srcs "$fw/examples/wifi42/main.cpp" "$here/demo_wifi42.cpp" -o "$out/demo_wifi42"
 "$out/demo_wifi42"
+
+echo
+echo "== counter with automatic UTC record timestamps through the actual sketch (SIMULATED clock and delivery) =="
+$CXX -std=c++11 -Wall -Wextra -Werror -DBARDBOX_HOST_DEMO \
+  '-DFIRMWARE_VERSION="0.0.0-counter-host-demo"' -DBARDBOX_RECORDING_INTERVAL_S=5 \
+  '-DBARDBOX_NETWORK_ENDPOINT="https://receiver.invalid/demo/wifi42"' \
+  -I"$here" $inc $srcs "$fw/examples/counter/main.cpp" "$here/demo_counter.cpp" -o "$out/demo_counter"
+"$out/demo_counter"

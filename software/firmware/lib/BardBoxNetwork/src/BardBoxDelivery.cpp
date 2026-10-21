@@ -111,7 +111,7 @@ NetworkStats DeliveryMailbox::stats() {
   return s;
 }
 
-void DeliveryBufferSide::step(BardBoxBuffer &buffer, DeliveryMailbox &mailbox) {
+void DeliveryBufferSide::step(BardBoxBuffer &buffer, DeliveryMailbox &mailbox, const TimeStatus *time) {
   DeliveryRequest request;
   if (!mailbox.takeRequest(request)) return;
   result_.id = request.id;
@@ -124,7 +124,7 @@ void DeliveryBufferSide::step(BardBoxBuffer &buffer, DeliveryMailbox &mailbox) {
   } else if (buffer.peekOldest(record_, result_.token)) {
     // A copy of the saved record, with its original attribution and schema.
     const NetworkStats sender = mailbox.stats();  // connectivity at send time, separate from the record
-    result_.bodyLen = serializeDeliveryCandidate(record_, result_.token, result_.body, sizeof result_.body, &sender.link);
+    result_.bodyLen = serializeDeliveryCandidate(record_, result_.token, result_.body, sizeof result_.body, &sender.link, time);
     result_.kind = result_.bodyLen ? DeliveryResult::Kind::Record : DeliveryResult::Kind::TooLarge;
   } else {
     result_.kind = buffer.status().stored ? DeliveryResult::Kind::ReadFailed : DeliveryResult::Kind::Empty;

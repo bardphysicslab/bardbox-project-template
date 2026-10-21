@@ -1,4 +1,5 @@
 #include "BardBoxEsp32Wifi.h"
+#include "BardBoxEsp32Sntp.h"
 #if defined(ARDUINO) && defined(ESP_PLATFORM)
 #include "BardBoxNetworkConfig.h"
 #include <Arduino.h>
@@ -50,12 +51,12 @@ class Esp32WifiIo : public WifiIo {
     return true;  // association is observed on subsequent steps
   }
   bool connected() override { return WiFi.status() == WL_CONNECTED; }
-  bool clockReady(const char *server) override {
-    // CA verification needs a real clock; never relax certificate checks to
-    // get an uncommissioned device connected. SNTP itself runs asynchronously.
-    if (time(nullptr) >= 1704067200) return true;  // 2024-01-01
-    if (!ntpRequested_) { configTime(0, 0, server); ntpRequested_ = true; }
-    return false;
+  bool clockReady(const char *) override {
+    // CA verification needs real UTC. The Time owner (BardBoxTime) runs the one
+    // SNTP client; TLS waits until it has synchronized this boot. Never relax
+    // certificate checks to connect an unsynchronized device.
+    int64_t utc;
+    return defaultEsp32SntpProvider().utcNow(utc);
   }
   Progress resolve(const char *host, char *out, size_t capacity) override {
     if (!dnsStarted_) {
@@ -162,7 +163,7 @@ class Esp32WifiIo : public WifiIo {
   }
   portMUX_TYPE dnsLock_ = portMUX_INITIALIZER_UNLOCKED;
   bool dnsPending_ = false, dnsComplete_ = false, dnsOk_ = false;
-  bool dnsStarted_ = false, ntpRequested_ = false;
+  bool dnsStarted_ = false;
   char dnsHost_[128] = {};
   ip_addr_t dnsAddress_ = {};
   esp_tls_t *tls_ = nullptr;

@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "BardBoxConnectivity.h"
+#include "BardBoxTime.h"
 #include "BardBoxRecord.h"
 #include "BardBoxSettings.h"
 #include "BardBoxSerialConfig.h"
@@ -61,6 +62,7 @@ struct SerialStatus {
   uint32_t netRetryMs = 0;
   char netLast[24] = "none";
   ConnectivityStatus link;  // Network-owned Wi-Fi diagnostics
+  TimeStatus time;          // Time-owned synchronization state and current UTC
   uint8_t registrationErrors = 0;
 };
 
@@ -81,7 +83,9 @@ class SerialDataSource {
 enum class SerialCommand : uint8_t { Empty, Info, Header, Read, ReadLive, Ping, Config, Unknown };
 
 // Wire protocol name stamped on records; a candidate pending review.
-constexpr const char *kWireProtocol = "v2-candidate";
+// v3 (template#49): HEADER/READ add the record's recorded_utc and status after
+// captured_ms; READ_LIVE keeps its v2 framing (the live cache has no record time).
+constexpr const char *kWireProtocol = "v3-candidate";
 
 // Case-insensitive command word; ignores surrounding spaces. Any line whose
 // first word starts with CONFIG_ is a settings command (arguments follow).
@@ -96,7 +100,7 @@ class BardBoxSerial {
   // Longer lines are discarded. Fits CONFIG_SET with a 63-byte password in hex.
   static constexpr size_t kMaxLine = 160;
   static constexpr size_t kMaxBytesPerStep = 256;
-  static constexpr size_t kMaxReply = 1280;  // worst-case INFO (about 1130 bytes) fits: host test
+  static constexpr size_t kMaxReply = 1536;  // worst-case INFO (about 1250 bytes) fits with margin: host test
 
   template <typename Port>
   void beginPort(Port &port, SerialDataSource &source) {

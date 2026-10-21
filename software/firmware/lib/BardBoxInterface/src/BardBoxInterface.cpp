@@ -13,6 +13,7 @@
 static bbcore::LittleFsStorage littleFsStorage;
 #include "BardBoxNvsSettingsStore.h"
 static bbcore::NvsSettingsStore nvsSettingsStore;
+#include "BardBoxEsp32Sntp.h"
 #endif
 
 bool BardBoxSensor::addMeasurement(const char *name, const char *unit, MeasurementType type) {
@@ -63,6 +64,7 @@ bool BardBoxInterface::beginWithVersion(const char *firmwareVersion) {
 #if defined(BARDBOX_INTERFACE_RTOS)
   if (!storage_) storage_ = &littleFsStorage;
   if (!settingsStore_) settingsStore_ = &nvsSettingsStore;
+  if (!timeProvider_) timeProvider_ = &bbcore::defaultEsp32SntpProvider();
   Serial.begin(bbcore::BardBoxSerial::configuredBaud());
   return beginWithPort(Serial, firmwareVersion, true);
 #elif defined(BARDBOX_HOST_DEMO)
@@ -70,7 +72,9 @@ bool BardBoxInterface::beginWithVersion(const char *firmwareVersion) {
   // supplies in-memory storage.
   extern bbcore::StorageAdapter *g_host_demo_storage;
   extern bbcore::Transport *g_host_demo_transport;
+  extern bbcore::TimeSyncProvider *g_host_demo_time;
   if (!storage_) storage_ = g_host_demo_storage;
+  if (!timeProvider_) timeProvider_ = g_host_demo_time;
   if (!transport_) transport_ = g_host_demo_transport;
   g_host_service = [](void *self) {
     static_cast<BardBoxInterface *>(self)->runServiceStep();
@@ -107,6 +111,10 @@ bool BardBoxInterface::beginWithPort(Stream &port, const char *firmwareVersion, 
   settings_.begin(settingsStore_, BARDBOX_DEVICE_UID, defaultSsid, defaultPassword);
   // New records carry this boot's UID; saved records keep their own.
   if (!buffer_.setAttribution(settings_.active().uid, firmwareVersion, bbcore::kWireProtocol)) return false;
+  time_.begin(timeProvider_);
+  // Records carry UTC of creation once synchronized, unless the project turned
+  // record timestamps off; Time and NTP run either way (TLS needs the clock).
+  buffer_.setUtcSource(&time_, BARDBOX_TIME_RECORD_TIMESTAMPS != 0);
 #if defined(BARDBOX_INTERFACE_RTOS)
   if (!buffer_.begin(millis(), bootId_, storage_, esp_random())) return false;
 #else
@@ -146,8 +154,11 @@ bool BardBoxInterface::beginWithPort(Stream &port, const char *firmwareVersion, 
 void BardBoxInterface::runServiceStep() {
   if (!begun_) return;
   serial_.service(1);
+  const bbcore::NetworkStats net = mailbox_.stats();
+  time_.service(net.link.wifi == bbcore::WifiState::Connected);  // NTP starts once Wi-Fi is up
   buffer_.service(millis(), measurements_);
-  deliveryOwner_.step(buffer_, mailbox_);
+  const bbcore::TimeStatus timeStatus = time_.status(millis());
+  deliveryOwner_.step(buffer_, mailbox_, &timeStatus);
 }
 
 void BardBoxInterface::runNetworkStep() {
@@ -185,5 +196,6 @@ void BardBoxInterface::status(bbcore::SerialStatus &out) {
   out.netRetryMs = n.retryInMs;
   memcpy(out.netLast, n.lastOutcome, sizeof out.netLast);
   out.link = n.link;
+  out.time = time_.status(millis());
   out.registrationErrors = measurements_.registrationErrors();
 }
