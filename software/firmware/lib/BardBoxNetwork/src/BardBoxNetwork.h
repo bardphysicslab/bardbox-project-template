@@ -14,6 +14,7 @@ struct NetworkSettings {
   bool endpointConfigured;
   uint32_t associationMs, dnsMs, connectMs, tlsMs, requestMs, responseMs;
   uint32_t retryBaseMs, retryMaxMs, idlePollMs;
+  const char *ssid;  // effective SSID this boot, reported in diagnostics only
   NetworkSettings()
       : enabled(BARDBOX_NETWORK_ENABLED != 0),
         endpointConfigured(BARDBOX_NETWORK_HAS_ENDPOINT != 0),
@@ -25,7 +26,8 @@ struct NetworkSettings {
         responseMs(BARDBOX_NETWORK_RESPONSE_TIMEOUT_MS),
         retryBaseMs(BARDBOX_NETWORK_RETRY_BASE_MS),
         retryMaxMs(BARDBOX_NETWORK_RETRY_MAX_MS),
-        idlePollMs(BARDBOX_NETWORK_IDLE_POLL_MS) {}
+        idlePollMs(BARDBOX_NETWORK_IDLE_POLL_MS),
+        ssid("") {}
 };
 
 // The Network owner: delivers the oldest saved record through an injected
@@ -58,12 +60,14 @@ class BardBoxNetwork {
   uint32_t deadlineFor(TransportPhase phase) const;
   void finish(uint32_t nowMs, const TransportOutcome &outcome, DeliveryMailbox &mailbox);
   void fail(uint32_t nowMs, const char *reason);
+  void refreshLink();
   void outcome(const char *reason);
 
   NetworkSettings settings_;
   Transport *transport_ = nullptr;
   NetworkStats stats_;
   uint32_t nextTryMs_ = 0;
+  uint32_t linkRefreshMs_ = 0;
   uint32_t requestId_ = 0;
   uint32_t attemptId_ = 0;
   uint32_t attemptStartMs_ = 0;

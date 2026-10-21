@@ -114,6 +114,7 @@ bool BardBoxInterface::beginWithPort(Stream &port, const char *firmwareVersion, 
 #endif
   mailbox_.begin();
   bbcore::NetworkSettings networkSettings;
+  networkSettings.ssid = settings_.active().ssid;  // diagnostics only
 #if defined(BARDBOX_INTERFACE_RTOS)
   if (!transport_ && networkSettings.enabled) {
     const bbcore::SettingsValues &active = settings_.active();
@@ -183,5 +184,6 @@ void BardBoxInterface::status(bbcore::SerialStatus &out) {
   out.netTimeouts = n.timeouts;
   out.netRetryMs = n.retryInMs;
   memcpy(out.netLast, n.lastOutcome, sizeof out.netLast);
+  out.link = n.link;
   out.registrationErrors = measurements_.registrationErrors();
 }

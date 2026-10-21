@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "BardBoxConnectivity.h"
+
 namespace bbcore {
 
 // Delivery phases. The Network owner gives each one a finite deadline.
@@ -32,6 +34,10 @@ class Transport {
   virtual const char *name() const = 0;
   // Optional bounded connection maintenance, including before any record exists.
   virtual void service(uint32_t nowMs) { (void)nowMs; }
+  // Optional bounded link diagnostics: sets wifi (Connected/Disconnected), ip,
+  // mac, RSSI and receiver (scheme://host[:port] only). The owner clears IP and
+  // RSSI unless Connected. Default: no diagnostics (left as the owner set them).
+  virtual void linkStatus(ConnectivityStatus &out) { (void)out; }
   // Begins one attempt. The transport must copy what it needs from body
   // before returning; the pointer is not valid afterwards.
   virtual bool start(uint32_t attemptId, const uint8_t *body, size_t len, uint32_t nowMs) = 0;

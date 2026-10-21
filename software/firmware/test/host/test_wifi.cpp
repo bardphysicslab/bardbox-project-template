@@ -43,6 +43,11 @@ class FakeWifi : public WifiIo {
     memcpy(buf,response.data()+readAt,n); readAt+=n; return static_cast<int>(n);
   }
   void close() override { ++closes; }
+  bool linkInfo(char *ip, size_t ipCap, char *mac, size_t macCap, int &rssi) override {
+    snprintf(mac,macCap,"02:00:5e:10:20:30");
+    if (!linked) { ip[0]=0; return false; }
+    snprintf(ip,ipCap,"192.0.2.10"); rssi=-58; return true;
+  }
 };
 static WifiSettings settings() {
   WifiSettings s;
@@ -124,12 +129,27 @@ static void test_failures_and_cancel() {
   t.step(100,out);CHECK(io.starts==1);  // reconnect cooldown survives attempts
   t.step(30000,out);CHECK(io.starts==2);
 }
+// Diagnostics never carry the endpoint path, query, bearer token or password.
+static void test_link_status() {
+  FakeWifi io; auto s=settings();
+  s.endpoint="https://receiver.invalid:8443/ingest/private-path?token=query-secret";
+  s.password="wifi-password-secret";
+  WifiHttpsTransport t(io,s); CHECK(t.configured());
+  ConnectivityStatus c; io.linked=true; t.linkStatus(c);
+  CHECK(c.wifi==WifiState::Connected && strcmp(c.ip,"192.0.2.10")==0 && c.rssiKnown && c.rssiDbm==-58);
+  CHECK(strcmp(c.receiver,"https://receiver.invalid:8443")==0);
+  const std::string all=std::string(c.receiver)+c.ip+c.mac+c.ssid;
+  for (const char *secret: {"private-path","query-secret","synthetic-test-token","wifi-password-secret"})
+    CHECK(all.find(secret)==std::string::npos);
+  ConnectivityStatus d; io.linked=false; t.linkStatus(d);
+  CHECK(d.wifi==WifiState::Disconnected && !d.rssiKnown && d.ip[0]==0 && strcmp(d.mac,"02:00:5e:10:20:30")==0);
+}
 int main() {
   FakeWifi idleIo; WifiHttpsTransport idle(idleIo,settings());
   idle.service(0); CHECK(idleIo.starts==1); // connect even before first record
   idleIo.linked=false; idle.service(100); CHECK(idleIo.starts==1);
   idle.service(30000); CHECK(idleIo.starts==2);
-  test_configuration();test_partial_io();test_bad_responses();test_failures_and_cancel();
+  test_configuration();test_link_status();test_partial_io();test_bad_responses();test_failures_and_cancel();
   if(failures) return 1;
   puts("Wi-Fi HTTPS adapter tests pass (fake radio/DNS/TLS I/O; no network)");
 }

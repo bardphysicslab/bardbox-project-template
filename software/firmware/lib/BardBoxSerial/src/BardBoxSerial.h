@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "BardBoxConnectivity.h"
 #include "BardBoxRecord.h"
 #include "BardBoxSettings.h"
 #include "BardBoxSerialConfig.h"
@@ -59,6 +60,7 @@ struct SerialStatus {
   uint32_t netTimeouts = 0;
   uint32_t netRetryMs = 0;
   char netLast[24] = "none";
+  ConnectivityStatus link;  // Network-owned Wi-Fi diagnostics
   uint8_t registrationErrors = 0;
 };
 
@@ -94,7 +96,7 @@ class BardBoxSerial {
   // Longer lines are discarded. Fits CONFIG_SET with a 63-byte password in hex.
   static constexpr size_t kMaxLine = 160;
   static constexpr size_t kMaxBytesPerStep = 256;
-  static constexpr size_t kMaxReply = 768;
+  static constexpr size_t kMaxReply = 1280;  // worst-case INFO (about 1130 bytes) fits: host test
 
   template <typename Port>
   void beginPort(Port &port, SerialDataSource &source) {
