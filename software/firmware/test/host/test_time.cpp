@@ -68,6 +68,12 @@ static std::string json(const std::string &body, const char *key, size_t from = 
 static std::string status(const std::string &body, const char *key) {
   return json(body, key, body.find("\"device_status\""));
 }
+static std::string column(const std::string &line, int index) {  // 0-based, comma separated
+  size_t at = 0;
+  for (int i = 0; i < index && at != std::string::npos; ++i) at = line.find(',', at) + 1;
+  if (at == 0 || at == std::string::npos) return "<missing>";
+  return line.substr(at, line.find(',', at) - at);
+}
 static void run(BardBoxInterface &box, uint32_t ms) {
   for (uint32_t t = 0; t < ms; t += 10) {
     g_host_millis += 10;
@@ -94,7 +100,7 @@ static void test_record_timestamps() {
   FakeTransport t;
   t.linkUp = false;  // no Wi-Fi yet: NTP must not start
   t.fallback = FakeTransport::Plan(FakeTransport::Mode::Stall, 0, bbcore::TransportPhase::Associating);
-  std::string unsyncedBody, syncedBody;
+  std::string unsyncedBody, syncedBody, readUnsynced, readSynced;
   {
     BardBoxInterface box;
     HostStream io;
@@ -111,6 +117,8 @@ static void test_record_timestamps() {
     demo.publish(1);
     run(box, 6000);  // record 1 at 5 s, before any sync
     CHECK(clock.starts == 0);
+    CHECK(ask(box, io, "HEADER").compare(0, 66, "HDR,v3,record,boot,captured_ms,recorded_utc,recorded_utc_status,de") == 0);
+    readUnsynced = ask(box, io, "READ");
     t.linkUp = true;
     run(box, 1500);  // Wi-Fi up: NTP starts once
     CHECK(clock.starts == 1);
@@ -119,6 +127,7 @@ static void test_record_timestamps() {
     run(box, 5000);  // record 2 after sync
     info = ask(box, io, "INFO");
     CHECK(field(info, "time") == "synced" && field(info, "utc").find("2026-10-21T00:00:") == 0);
+    readSynced = ask(box, io, "READ");
     CHECK(clock.starts == 1);  // one owner, started once
   }
   {
@@ -156,6 +165,12 @@ static void test_record_timestamps() {
       CHECK(status(syncedBody, "time") == "synced" && field(info, "time") == "synced");
       CHECK(status(syncedBody, "record_utc") == field(info, "record_utc"));
       CHECK(status(syncedBody, "time_sync_age_s") != "null");
+      // Normal serial READ shows the same saved record time and status as the JSON record.
+      CHECK(column(readUnsynced, 5) == "-" && column(readUnsynced, 6) == json(unsyncedBody, "recorded_utc_status"));
+      CHECK(column(readSynced, 6) == json(syncedBody, "recorded_utc_status"));
+      CHECK(column(readSynced, 5) == (kOn ? json(syncedBody, "recorded_utc") : std::string("-")));
+      // The current clock: device_status "utc" and INFO "utc" are both the synced clock.
+      CHECK(status(syncedBody, "utc").find("2026-10-21T00:00:") == 0 && field(info, "utc").find("2026-10-21T00:00:") == 0);
     }
   }
   printf("record timestamps %s: unsynced record %s, synced record %s\n", kOn ? "ON" : "OFF",

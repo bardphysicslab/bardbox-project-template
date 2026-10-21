@@ -197,8 +197,5 @@ void BardBoxInterface::status(bbcore::SerialStatus &out) {
   memcpy(out.netLast, n.lastOutcome, sizeof out.netLast);
   out.link = n.link;
   out.time = time_.status(millis());
-  int64_t utcMs;
-  bbcore::UtcSourceKind utcSource;
-  if (!time_.utcNow(utcMs, utcSource) || !bbcore::formatUtc(utcMs, out.utc, sizeof out.utc)) out.utc[0] = 0;
   out.registrationErrors = measurements_.registrationErrors();
 }

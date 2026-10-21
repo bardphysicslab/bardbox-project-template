@@ -35,6 +35,7 @@ struct TimeStatus {
   bool lastSyncKnown = false;
   uint32_t lastSyncAgeS = 0;  // seconds since the last successful synchronization
   bool recordTimestamps = BARDBOX_TIME_RECORD_TIMESTAMPS != 0;  // new records get UTC
+  char utc[25] = "";  // current clock (not a record time), empty unless synced
 };
 
 // The one owner of UTC (template#49): starts NTP once Wi-Fi is connected,

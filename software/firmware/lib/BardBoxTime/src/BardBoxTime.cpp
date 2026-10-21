@@ -48,6 +48,8 @@ TimeStatus BardBoxTime::status(uint32_t nowMs) {
     s.lastSyncKnown = true;
     s.lastSyncAgeS = (nowMs - provider_->lastSyncMonotonicMs()) / 1000;
   }
+  int64_t ms;
+  if (!provider_->utcNow(ms) || !formatUtc(ms, s.utc, sizeof s.utc)) s.utc[0] = 0;
   return s;
 }
 

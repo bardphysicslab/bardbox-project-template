@@ -57,7 +57,13 @@ def recorded_time(payload):
     if status not in UTC_STATUSES:
         return None
     if status == "ntp":
-        return (status, utc) if isinstance(utc, str) and UTC_RE.fullmatch(utc) else None
+        if not isinstance(utc, str) or not UTC_RE.fullmatch(utc):
+            return None
+        try:  # a real calendar instant, not just the right shape
+            datetime.strptime(utc, "%Y-%m-%dT%H:%M:%S.%fZ")
+        except ValueError:
+            return None
+        return (status, utc)
     return (status, None) if utc is None else None
 
 

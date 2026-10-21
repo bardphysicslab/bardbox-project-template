@@ -366,14 +366,14 @@ void BardBoxSerial::writeInfo(SerialLine &line) {
   line.text(" time=").text(timeStateName(st.time.state)).text(" time_sync_age_s=");
   if (st.time.lastSyncKnown) line.uint(st.time.lastSyncAgeS);
   else line.text("-");
-  line.text(" utc=").text(st.utc[0] ? st.utc : "unknown");
+  line.text(" utc=").text(st.time.utc[0] ? st.time.utc : "unknown");  // current clock
   line.text(st.time.recordTimestamps ? " record_utc=on" : " record_utc=off");
   line.end();
 }
 
 // HDR,v2,record,boot,captured_ms,<sensor.measurement>...
 void BardBoxSerial::writeHeader(SerialLine &line) {
-  line.text("HDR,v2,record,boot,captured_ms");
+  line.text("HDR,v3,record,boot,captured_ms,recorded_utc,recorded_utc_status");
   const uint8_t channels = source_->channelCount();
   for (uint8_t c = 0; c < channels; ++c) {
     line.text(",");
@@ -382,7 +382,10 @@ void BardBoxSerial::writeHeader(SerialLine &line) {
   line.end();
 }
 
-// Latest completed record: DAT,v2,<record>,<boot>,<captured_ms>,<value|!code>...
+// Latest completed record: DAT,v3,<record>,<boot>,<captured_ms>,
+// <recorded_utc|->,<recorded_utc_status>,<value|!code>... The UTC is the saved
+// record-creation time (same field and status as the delivery JSON), not the
+// current clock. v3 replaces v2, so a v2 parser never misreads the columns.
 // Healthy channels keep their values; a bad channel shows its code.
 void BardBoxSerial::writeRead(SerialLine &line) {
   Record &r = record_;
@@ -394,7 +397,11 @@ void BardBoxSerial::writeRead(SerialLine &line) {
     line.text("ERR SAMPLE_NOT_READY").end();
     return;
   }
-  line.text("DAT,v2,").uint(r.seq).text(",").hex32(r.bootId).text(",").uint(r.capturedMs);
+  line.text("DAT,v3,").uint(r.seq).text(",").hex32(r.bootId).text(",").uint(r.capturedMs).text(",");
+  char utc[25];
+  if (r.recordedUtc == RecordedUtc::Ntp && formatUtc(r.recordedUtcMs, utc, sizeof utc)) line.text(utc);
+  else line.text("-");
+  line.text(",").text(recordedUtcName(r.recordedUtc));
   for (uint8_t c = 0; c < r.channelCount; ++c) {
     line.text(",");
     writeValue(line, r.channels[c].value);

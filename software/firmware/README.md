@@ -45,7 +45,8 @@ Build: `pio run -e feather_s3` fails until `FIRMWARE_VERSION` is set in
 feather_s3_m1_test` builds with an explicit test version. Serial commands:
 `INFO`, `HEADER`, `READ` (latest completed record), `READ_LIVE` (latest cached
 readings), `PING` and the `CONFIG_*` settings commands; `HEADER`, `READ` and
-`READ_LIVE` use a v2 candidate framing pending review (see
+`READ_LIVE` use candidate framings pending review (`HDR`/`DAT,v3` with the
+record's UTC timestamp, `LIVE,v2`; see
 `lib/BardBoxSerial/README.md`).
 
 UID, Wi-Fi SSID and password can be changed over USB serial without a rebuild

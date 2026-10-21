@@ -163,6 +163,7 @@ size_t serializeDeliveryCandidate(const Record &r, const QueueToken &token, char
       if (time->lastSyncKnown) j.format(",\"time_sync_age_s\":%lu", static_cast<unsigned long>(time->lastSyncAgeS));
       else j.raw(",\"time_sync_age_s\":null");
       j.raw(time->recordTimestamps ? ",\"record_utc\":\"on\"" : ",\"record_utc\":\"off\"");
+      textOrNull(j, "utc", time->utc);  // the sender's clock when this body was built
     }
     j.raw("}");
   }

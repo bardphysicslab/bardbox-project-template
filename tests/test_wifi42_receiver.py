@@ -87,7 +87,9 @@ def test_counter_and_recorded_utc_are_validated():
     for value in (-1, True, 7.0, "7", None, 2**63):
         assert demo_reading(counter(value)) is None
     for utc, status in (("2026-10-21 00:00:15", "ntp"), (None, "ntp"), ("2026-10-21T00:00:15.000Z", "unsynced"),
-                        ("<script>", "ntp"), (None, "later")):
+                        ("<script>", "ntp"), (None, "later"), ("2026-02-30T00:00:00.000Z", "ntp"),
+                        ("2026-13-01T00:00:00.000Z", "ntp"), ("2026-10-21T24:00:00.000Z", "ntp"),
+                        ("2025-02-29T00:00:00.000Z", "ntp")):
         assert recorded_time(counter(utc=utc, status=status)) is None
 
 

@@ -113,29 +113,29 @@ static void test_types() {
 static void test_records_vs_live() {
   Fixture f;
   CHECK_EQ_STR(ask(f.box, f.io, "HEADER"),
-               "HDR,v2,record,boot,captured_ms,bme280.humidity,bme280.temperature,bme280.pressure");
+               "HDR,v3,record,boot,captured_ms,recorded_utc,recorded_utc_status,bme280.humidity,bme280.temperature,bme280.pressure");
   CHECK_EQ_STR(ask(f.box, f.io, "READ"), "ERR SAMPLE_NOT_READY");
 
   g_host_millis = 30000;
   f.bme.publish(43.0f, 21.5f, 100980.0f);
   advance(f.box, 61000);  // first boundary was due at 61000
-  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v2,1,5eed0001,61000,43,21.5,100980");
+  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v3,1,5eed0001,61000,-,unsynced,43,21.5,100980");
 
   g_host_millis = 62000;
   f.bme.publish(44.0f, 22.0f, NAN);  // newer values: cache only, not a record
-  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v2,1,5eed0001,61000,43,21.5,100980");
+  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v3,1,5eed0001,61000,-,unsynced,43,21.5,100980");
   CHECK_EQ_STR(ask(f.box, f.io, "READ_LIVE"),
                "LIVE,v2,5eed0001,62000|bme280,publish=2,handoff_age_ms=0,acquired=unknown,"
                "humidity=44,temperature=22,pressure=!non_finite");
 
   advance(f.box, 121000);  // second record keeps healthy channels
-  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v2,2,5eed0001,121000,44,22,!non_finite");
+  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v3,2,5eed0001,121000,-,unsynced,44,22,!non_finite");
 
   bbcore::Record rec;
   advance(f.box, 181000);  // no new hand-off: repeated, not presented as new
   CHECK(f.box.registrationErrors() == 0);
   CHECK_EQ_STR(ask(f.box, f.io, "INFO"),
-               "OK INFO uid=unassigned fw=0.0.0-host-test sensors=bme280 wire=v2-candidate "
+               "OK INFO uid=unassigned fw=0.0.0-host-test sensors=bme280 wire=v3-candidate "
                "boot=5eed0001 recording_s=60 record=3 record_ms=181000 storage=host durable=yes stored=3 "
                "capacity=256 evicted=0 pending_ram=0 lost_ram=0 write_failures=0 interrupted=0 "
                "quarantined=0 skipped=0 queue=ok hidden=0 unreadable=0 meta_rebuilt=0 "
@@ -146,7 +146,7 @@ static void test_records_vs_live() {
 static void test_never_published_and_skips() {
   Fixture f;
   advance(f.box, 61000);
-  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v2,1,5eed0001,61000,!no_sample,!no_sample,!no_sample");
+  CHECK_EQ_STR(ask(f.box, f.io, "READ"), "DAT,v3,1,5eed0001,61000,-,unsynced,!no_sample,!no_sample,!no_sample");
   advance(f.box, 61000 + 3 * 60000 + 5);  // service late by three intervals: one record
   CHECK(ask(f.box, f.io, "INFO").find(" record=2 ") != std::string::npos);
   CHECK(ask(f.box, f.io, "INFO").find(" skipped=2 ") != std::string::npos);
@@ -168,7 +168,7 @@ static void test_no_storage_loss_is_visible_and_latest_kept() {
   const std::string info = ask(box, io, "INFO");
   CHECK(info.find(" storage=none durable=no stored=0 ") != std::string::npos);
   CHECK(info.find(" pending_ram=8 lost_ram=2 ") != std::string::npos);
-  CHECK_EQ_STR(ask(box, io, "READ"), "DAT,v2,10,5eed0001,601000,49");
+  CHECK_EQ_STR(ask(box, io, "READ"), "DAT,v3,10,5eed0001,601000,-,unsynced,49");
 }
 
 static void test_serial_parsing() {
@@ -202,14 +202,14 @@ static void test_interleaved_registration() {
   CHECK(b.addMeasurement("pm10", "ug/m3"));
   CHECK(box.beginWithPort(io, FIRMWARE_VERSION, false));
   CHECK_EQ_STR(ask(box, io, "HEADER"),
-               "HDR,v2,record,boot,captured_ms,pms_a.pm25,pms_b.pm25,pms_a.pm10,pms_b.pm10");
+               "HDR,v3,record,boot,captured_ms,recorded_utc,recorded_utc_status,pms_a.pm25,pms_b.pm25,pms_a.pm10,pms_b.pm10");
   CHECK(a.publish(1.0f, 2.0f).accepted);   // a: pm25=1, pm10=2
   CHECK(b.publish(10.0f, 20.0f).accepted); // b: pm25=10, pm10=20
   CHECK_EQ_STR(ask(box, io, "READ_LIVE"),
                "LIVE,v2,5eed0001,1000|pms_a,publish=1,handoff_age_ms=0,acquired=unknown,pm25=1,pm10=2"
                "|pms_b,publish=1,handoff_age_ms=0,acquired=unknown,pm25=10,pm10=20");
   advance(box, 61000);
-  CHECK_EQ_STR(ask(box, io, "READ"), "DAT,v2,1,5eed0001,61000,1,10,2,20");
+  CHECK_EQ_STR(ask(box, io, "READ"), "DAT,v3,1,5eed0001,61000,-,unsynced,1,10,2,20");
 }
 
 static void test_stalled_serial_does_not_stop_recording() {
