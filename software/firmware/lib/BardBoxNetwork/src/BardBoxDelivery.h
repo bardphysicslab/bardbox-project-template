@@ -33,6 +33,7 @@ struct NetworkStats {
   int lastHttp = 0;              // last HTTP status seen (0 = none)
   char lastOutcome[24] = "none";  // copied, so readers never see a changing buffer
   ConnectivityStatus link;        // Wi-Fi diagnostics, refreshed about once a second
+  char lastError[32] = "-";       // last connection failure stage/detail (TransportOutcome::detail)
 };
 
 // Bounded hand-off between the Network owner and the single Buffer owner. The

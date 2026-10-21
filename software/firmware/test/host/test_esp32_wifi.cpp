@@ -11,6 +11,8 @@ StubWifi WiFi;
 dns_cb pendingDns=nullptr;
 void *pendingDnsArg=nullptr;
 int tlsCreated=0,tlsDestroyed=0,tlsPendingChecks=0;
+int tlsFailLast=0,tlsFailCode=0,tlsFailFlags=0;
+bool tlsFailNow=false;
 std::string tlsSent;
 size_t tlsReadAt=0;
 static void dnsDone() {
@@ -41,6 +43,20 @@ int main() {
  bbcore::ConnectivityStatus link; t.linkStatus(link);
  assert(link.wifi==bbcore::WifiState::Connected && std::string(link.ip)=="192.0.2.10" && link.rssiKnown && link.rssiDbm==-61);
  assert(std::string(link.mac)=="02:00:5e:10:20:30" && std::string(link.receiver)=="https://receiver.invalid");
+ // One call: CONNECTING -> HANDSHAKE -> FAIL. Classified from the recorded
+ // error, not from the final state (Codex review of 217022a).
+ tlsFailNow=true; tlsFailLast=ESP_ERR_MBEDTLS_SSL_HANDSHAKE_FAILED; tlsFailCode=0x2700; tlsFailFlags=0x4;
+ assert(t.start(4,body,2,200));
+ for(unsigned now=200;now<300;++now) { if(t.step(now,out)==bbcore::TransportPhase::Done) break; if(pendingDns) dnsDone(); }
+ assert(out.kind==bbcore::TransportOutcome::Kind::ConnectionFailed && std::string(out.detail)=="tls:-0x2700:0x4");
+ tlsFailNow=true; tlsFailLast=ESP_ERR_ESP_TLS_FAILED_CONNECT_TO_HOST; tlsFailCode=0; tlsFailFlags=0;
+ assert(t.start(5,body,2,300));
+ for(unsigned now=300;now<400;++now) { if(t.step(now,out)==bbcore::TransportPhase::Done) break; if(pendingDns) dnsDone(); }
+ assert(std::string(out.detail)=="tcp:0x8004");
+ tlsFailNow=true; tlsFailLast=0;
+ assert(t.start(6,body,2,400));
+ for(unsigned now=400;now<500;++now) { if(t.step(now,out)==bbcore::TransportPhase::Done) break; if(pendingDns) dnsDone(); }
+ assert(std::string(out.detail)=="connect:0x0");
  WiFi.up=false; bbcore::ConnectivityStatus down; t.linkStatus(down);
  assert(down.wifi==bbcore::WifiState::Disconnected && !down.rssiKnown && down.ip[0]==0);
  puts("ESP32 provider tests pass (stubbed APIs, including pending DNS and select rearming)");

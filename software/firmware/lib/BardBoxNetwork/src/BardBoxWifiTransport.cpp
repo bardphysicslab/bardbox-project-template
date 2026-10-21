@@ -119,12 +119,27 @@ void WifiHttpsTransport::abort() {
   memset(request_, 0, sizeof request_);
 }
 
+// Captures the failure stage before finish() closes the connection (the TLS
+// library's error record is lost with it). Numbers only, never secrets.
+void WifiHttpsTransport::connectionFailed(const char *stage) {
+  char detail[sizeof result_.detail];
+  snprintf(detail, sizeof detail, "%s", stage);
+  if (strcmp(stage, "connect") == 0) {
+    io_.connectFailure(detail, sizeof detail);
+    detail[sizeof detail - 1] = 0;
+    if (!detail[0]) snprintf(detail, sizeof detail, "connect");  // not classified
+  }
+  finish(TransportOutcome::Kind::ConnectionFailed);
+  memcpy(result_.detail, detail, sizeof detail);
+}
+
 void WifiHttpsTransport::finish(TransportOutcome::Kind kind, int status) {
   io_.close();
   result_.kind = kind;
   result_.httpStatus = status;
   result_.attemptId = attemptId_;
   result_.endpointVerified = kind == TransportOutcome::Kind::HttpStatus;
+  result_.detail[0] = 0;
   phase_ = TransportPhase::Done;
   active_ = false;
   memset(request_, 0, sizeof request_);
@@ -203,26 +218,26 @@ bool WifiHttpsTransport::responseByte(uint8_t ch) {
 TransportPhase WifiHttpsTransport::step(uint32_t now, TransportOutcome &out) {
   if (!active_) { if (phase_ == TransportPhase::Done) out = result_; return phase_; }
   if (phase_ != TransportPhase::Associating && !io_.connected()) {
-    finish(TransportOutcome::Kind::ConnectionFailed);
+    connectionFailed("link");
   } else if (phase_ == TransportPhase::Associating) {
     if (io_.connected()) {
       if (io_.clockReady(settings_.ntpServer)) phase_ = TransportPhase::Resolving;
     } else service(now);
   } else if (phase_ == TransportPhase::Resolving) {
     const WifiIo::Progress p = io_.resolve(host_, address_, sizeof address_);
-    if (p == WifiIo::Progress::Failed) finish(TransportOutcome::Kind::ConnectionFailed);
+    if (p == WifiIo::Progress::Failed) connectionFailed("dns");
     else if (p == WifiIo::Progress::Ready) phase_ = TransportPhase::Connecting;
   } else if (phase_ == TransportPhase::Connecting || phase_ == TransportPhase::Tls) {
     bool handshaking = false;
     const WifiIo::Progress p = io_.connectTls(address_, port_, host_, settings_.caPem, handshaking);
-    if (p == WifiIo::Progress::Failed) finish(TransportOutcome::Kind::ConnectionFailed);
+    if (p == WifiIo::Progress::Failed) connectionFailed("connect");
     else if (p == WifiIo::Progress::Ready) phase_ = TransportPhase::Sending;
     else if (handshaking) phase_ = TransportPhase::Tls;
   } else if (phase_ == TransportPhase::Sending) {
     const size_t left = requestLen_ - sent_;
     const size_t chunk = left < 512 ? left : 512;
     const int n = io_.write(reinterpret_cast<const uint8_t *>(request_) + sent_, chunk);
-    if (n < 0 || static_cast<size_t>(n) > chunk) finish(TransportOutcome::Kind::ConnectionFailed);
+    if (n < 0 || static_cast<size_t>(n) > chunk) connectionFailed("send");
     else {
       sent_ += static_cast<size_t>(n);
       if (sent_ == requestLen_) phase_ = TransportPhase::AwaitingResponse;

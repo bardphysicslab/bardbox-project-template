@@ -24,6 +24,19 @@ needed, `BARDBOX_NETWORK_ENDPOINT`, `BARDBOX_NETWORK_CA_PEM`, and optional
 `BARDBOX_NETWORK_BEARER_TOKEN`. For the supplied receiver the bearer token is
 required and must match its private `BARDBOX_DEMO_TOKEN` environment value.
 A certificate/CA must be valid for the exact endpoint hostname/IP the board uses.
+**For an IP-address endpoint, list the address as a DNS name as well as an IP:**
+the board's TLS library (mbedtls 2.28.7 in the ESP32 Arduino core) matches only
+DNS-name subject alternative names, and ignores the subject CN whenever a SAN is
+present. A certificate with only `IP:192.0.2.5` passes `curl` and OpenSSL but
+fails on the board, where INFO shows `net_last=connection_failed
+net_error=tls:-0x2700:0x4` (certificate verification failed; 0x4 = name
+mismatch). For example (OpenSSL 1.1.1 or later; replace the address):
+
+```sh
+openssl req -x509 -newkey rsa:2048 -nodes -days 30 -subj "/CN=192.0.2.5" \
+  -addext "subjectAltName=DNS:192.0.2.5,IP:192.0.2.5" \
+  -keyout /path/outside/git/test-key.pem -out /path/outside/git/test-cert.pem
+```
 Only HTTPS is supported; no insecure fallback or system trust-store change.
 Clock synchronization uses the configured NTP server if the clock is unset.
 

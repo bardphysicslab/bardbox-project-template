@@ -15,7 +15,23 @@ struct esp_tls_cfg_t {
  unsigned cacert_bytes;
  const char *common_name;
 };
-struct esp_tls_t { int conn_state=ESP_TLS_INIT, sockfd=1, calls=0; fd_set rset,wset; };
+typedef void *esp_tls_error_handle_t;
+typedef int esp_err_t;
+#define ESP_ERR_ESP_TLS_BASE 0x8000
+#define ESP_ERR_ESP_TLS_CANNOT_RESOLVE_HOSTNAME (ESP_ERR_ESP_TLS_BASE + 0x01)
+#define ESP_ERR_ESP_TLS_FAILED_CONNECT_TO_HOST (ESP_ERR_ESP_TLS_BASE + 0x04)
+#define ESP_ERR_ESP_TLS_TCP_CLOSED_FIN (ESP_ERR_ESP_TLS_BASE + 0x08)
+#define ESP_ERR_MBEDTLS_CERT_PARTLY_OK (ESP_ERR_ESP_TLS_BASE + 0x10)
+#define ESP_ERR_MBEDTLS_SSL_HANDSHAKE_FAILED (ESP_ERR_ESP_TLS_BASE + 0x1A)
+#define ESP_ERR_MBEDTLS_SSL_TICKET_SETUP_FAILED (ESP_ERR_ESP_TLS_BASE + 0x1C)
+// Failure injection: the next call fails as IDF 4.4.7 does when CONNECTING falls
+// through to HANDSHAKE and the handshake fails in the same call (state FAIL).
+extern int tlsFailLast, tlsFailCode, tlsFailFlags;
+extern bool tlsFailNow;
+struct esp_tls_t { int conn_state=ESP_TLS_INIT, sockfd=1, calls=0; fd_set rset,wset; esp_tls_error_handle_t error_handle=nullptr; };
+inline int esp_tls_get_and_clear_last_error(esp_tls_error_handle_t, int *code, int *flags) {
+ *code=tlsFailCode; *flags=tlsFailFlags; return tlsFailLast;
+}
 extern int tlsCreated, tlsDestroyed, tlsPendingChecks;
 extern std::string tlsSent;
 extern size_t tlsReadAt;
@@ -25,6 +41,7 @@ inline int esp_tls_conn_new_async(const char *ip, int, int port, const esp_tls_c
  assert(cfg->non_block && cfg->timeout_ms>0 && cfg->timeout_ms<=1);
  assert(!cfg->skip_common_name && !strcmp(cfg->common_name,"receiver.invalid"));
  assert(cfg->cacert_bytes>1 && cfg->cacert_buf && !strcmp(ip,"203.0.113.1") && port==443);
+ if (tlsFailNow) { tlsFailNow=false; tls->conn_state=ESP_TLS_FAIL; return -1; }
  if (tls->conn_state==ESP_TLS_CONNECTING) {
    assert(FD_ISSET(tls->sockfd,&tls->rset) && FD_ISSET(tls->sockfd,&tls->wset));
    ++tlsPendingChecks;
