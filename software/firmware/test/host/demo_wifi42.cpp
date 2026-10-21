@@ -1,5 +1,6 @@
 // Runs the actual wifi42 sketch through the API with simulated transport.
 #include <Arduino.h>
+#include "BardBoxTime.h"
 #include "FakeStorage.h"
 #include "FakeTransport.h"
 #include <assert.h>
@@ -12,6 +13,7 @@ static FakeStorage storage;
 static FakeTransport transport;
 bbcore::StorageAdapter *g_host_demo_storage=&storage;
 bbcore::Transport *g_host_demo_transport=&transport;
+bbcore::TimeSyncProvider *g_host_demo_time=nullptr;
 void setup(); void loop();
 int main() {
   setup();

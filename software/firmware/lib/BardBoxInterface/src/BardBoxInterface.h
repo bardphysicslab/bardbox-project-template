@@ -7,6 +7,7 @@
 //   BardBoxSerial       - commands and every wire form
 //   BardBoxNetwork      - delivery of saved records through an injected transport
 //   BardBoxSettings     - saved per-device UID and Wi-Fi settings (next boot)
+//   BardBoxTime         - UTC over NTP (one owner), record-creation timestamps
 //
 // The Buffer (and its codec) has one owner: the BardBox service task. The
 // Network owner reaches it only through a bounded mailbox. No OTA yet.
@@ -21,6 +22,7 @@
 #include "BardBoxNetwork.h"
 #include "BardBoxSerial.h"
 #include "BardBoxSettings.h"
+#include "BardBoxTime.h"
 
 // Student code must define FIRMWARE_VERSION before including this header.
 #if !defined(BARDBOX_INTERFACE_IMPLEMENTATION) && !defined(FIRMWARE_VERSION)
@@ -81,6 +83,8 @@ class BardBoxInterface : private bbcore::SerialDataSource {
   void useStorage(bbcore::StorageAdapter *storage) { storage_ = storage; }
   // Store for saved device settings; set before begin. ESP32 uses NVS.
   void useSettingsStore(bbcore::SettingsStore *store) { settingsStore_ = store; }
+  // Time synchronization provider; set before begin. ESP32 uses SNTP.
+  void useTimeProvider(bbcore::TimeSyncProvider *provider) { timeProvider_ = provider; }
   // Optional injected delivery transport, set before begin. ESP32 otherwise
   // selects its Wi-Fi/HTTPS adapter when the private configuration is valid.
   void useTransport(bbcore::Transport *transport) { transport_ = transport; }
@@ -117,6 +121,8 @@ class BardBoxInterface : private bbcore::SerialDataSource {
   bbcore::DeliveryMailbox mailbox_;
   bbcore::DeliveryBufferSide deliveryOwner_;
   bbcore::BardBoxSettings settings_;
+  bbcore::BardBoxTime time_;
+  bbcore::TimeSyncProvider *timeProvider_ = nullptr;
   bbcore::StorageAdapter *storage_ = nullptr;
   bbcore::SettingsStore *settingsStore_ = nullptr;
   bbcore::Transport *transport_ = nullptr;

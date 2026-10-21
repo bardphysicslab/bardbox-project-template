@@ -85,7 +85,7 @@ static void textOrNull(JsonOut &j, const char *name, const char *value) {
 }
 
 size_t serializeDeliveryCandidate(const Record &r, const QueueToken &token, char *out, size_t cap,
-                                  const ConnectivityStatus *sender) {
+                                  const ConnectivityStatus *sender, const TimeStatus *time) {
   if (!out || cap == 0 || r.channelCount > kMaxChannels) return 0;
   JsonOut j(out, cap);
   char uid[sizeof r.attribution.uid], fw[sizeof r.attribution.firmware], proto[sizeof r.attribution.protocol];
@@ -103,6 +103,18 @@ size_t serializeDeliveryCandidate(const Record &r, const QueueToken &token, char
   j.format(",\"record\":%lu", static_cast<unsigned long>(r.seq));
   j.format(",\"due_ms\":%lu", static_cast<unsigned long>(r.dueMs));
   j.format(",\"captured_ms\":%lu", static_cast<unsigned long>(r.capturedMs));
+  // UTC when this record was created; the status says why it may be null.
+  char utc[25];
+  if (r.recordedUtc == RecordedUtc::Ntp && formatUtc(r.recordedUtcMs, utc, sizeof utc)) {
+    j.raw(",\"recorded_utc\":\"");
+    j.raw(utc);
+    j.raw("\"");
+  } else {
+    j.raw(",\"recorded_utc\":null");
+  }
+  j.raw(",\"recorded_utc_status\":\"");
+  j.raw(recordedUtcName(r.recordedUtc));
+  j.raw("\"");
   j.raw(",\"acquired_time\":\"unknown\",\"channels\":[");
   for (uint8_t c = 0; c < r.channelCount; ++c) {
     const ChannelSchema &s = r.schema[c];
@@ -144,6 +156,14 @@ size_t serializeDeliveryCandidate(const Record &r, const QueueToken &token, char
     textOrNull(j, "wifi_ssid", sender->ssid);
     textOrNull(j, "receiver", sender->receiver);
     textOrNull(j, "net_error", strcmp(sender->netError, "-") == 0 ? "" : sender->netError);
+    if (time) {
+      j.raw(",\"time\":\"");
+      j.raw(timeStateName(time->state));
+      j.raw("\"");
+      if (time->lastSyncKnown) j.format(",\"time_sync_age_s\":%lu", static_cast<unsigned long>(time->lastSyncAgeS));
+      else j.raw(",\"time_sync_age_s\":null");
+      j.raw(time->recordTimestamps ? ",\"record_utc\":\"on\"" : ",\"record_utc\":\"off\"");
+    }
     j.raw("}");
   }
   j.raw("}");

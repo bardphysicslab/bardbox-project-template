@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "BardBoxConnectivity.h"
+#include "BardBoxTime.h"
 #include "BardBoxRecord.h"
 #include "BardBoxSettings.h"
 #include "BardBoxSerialConfig.h"
@@ -61,6 +62,8 @@ struct SerialStatus {
   uint32_t netRetryMs = 0;
   char netLast[24] = "none";
   ConnectivityStatus link;  // Network-owned Wi-Fi diagnostics
+  TimeStatus time;          // Time-owned synchronization state
+  char utc[25] = "";        // current UTC, empty when unknown
   uint8_t registrationErrors = 0;
 };
 

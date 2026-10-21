@@ -362,6 +362,12 @@ void BardBoxSerial::writeInfo(SerialLine &line) {
   hexText(line, w.ssid);
   line.text(" receiver=").text(w.receiver[0] ? w.receiver : "-");
   line.text(" net_error=").text(w.netError);  // most recent connection failure (historical), "-" none
+  // Time (template#49): same names and meanings as device_status.
+  line.text(" time=").text(timeStateName(st.time.state)).text(" time_sync_age_s=");
+  if (st.time.lastSyncKnown) line.uint(st.time.lastSyncAgeS);
+  else line.text("-");
+  line.text(" utc=").text(st.utc[0] ? st.utc : "unknown");
+  line.text(st.time.recordTimestamps ? " record_utc=on" : " record_utc=off");
   line.end();
 }
 

@@ -1,6 +1,7 @@
 // Tests the actual ESP32 provider against stubbed radio, DNS and TLS calls.
 // Not a TLS handshake, radio or hardware test.
 #include "BardBoxEsp32Wifi.h"
+#include "BardBoxEsp32Sntp.h"
 #include <WiFi.h>
 #include <lwip/dns.h>
 #include <esp_tls.h>
@@ -12,6 +13,8 @@ dns_cb pendingDns=nullptr;
 void *pendingDnsArg=nullptr;
 int tlsCreated=0,tlsDestroyed=0,tlsPendingChecks=0;
 int tlsFailLast=0,tlsFailCode=0,tlsFailFlags=0;
+int g_configTimeCalls=0;
+void (*g_sntpCallback)(struct timeval *)=nullptr;
 bool tlsFailNow=false;
 std::string tlsSent;
 size_t tlsReadAt=0;
@@ -22,6 +25,13 @@ static void dnsDone() {
 }
 int main() {
  auto &t=bbcore::defaultEsp32WifiTransport(BARDBOX_WIFI_SSID,"");
+ // One clock owner: TLS waits for the Time provider's first sync and never
+ // starts SNTP itself (template#49).
+ bbcore::TimeSyncProvider &sntp=bbcore::defaultEsp32SntpProvider();
+ int64_t utc=0;
+ assert(!sntp.utcNow(utc) && sntp.syncCount()==0);
+ sntp.start("pool.ntp.org",3600000); assert(g_configTimeCalls==1 && g_sntpCallback);
+ g_sntpCallback(nullptr); assert(sntp.utcNow(utc) && sntp.syncCount()==1 && utc>1704067200000LL);
  assert(t.configured());
  auto body=reinterpret_cast<const uint8_t *>("42");
  assert(t.start(1,body,2,0));

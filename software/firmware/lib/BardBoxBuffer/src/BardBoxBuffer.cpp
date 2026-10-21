@@ -17,6 +17,16 @@ const char *channelStatusCode(ChannelStatus status) {
   return "unknown";
 }
 
+const char *recordedUtcName(RecordedUtc status) {
+  switch (status) {
+    case RecordedUtc::Unsynced: return "unsynced";
+    case RecordedUtc::Ntp: return "ntp";
+    case RecordedUtc::Disabled: return "disabled";
+    case RecordedUtc::NotRecorded: return "not_recorded";
+  }
+  return "unknown";
+}
+
 const char *queueStateName(QueueState state) {
   switch (state) {
     case QueueState::Ok: return "ok";
@@ -420,6 +430,17 @@ bool BardBoxBuffer::service(uint32_t nowMs, SnapshotSource &source) {
   record.seq = ++recordSeq_;
   record.attribution = attribution_;
   record.channelCount = source.snapshotChannels(record.channels, record.capturedMs);
+  // UTC of record creation at this boundary, stored once and never relabelled.
+  int64_t utcMs = 0;
+  UtcSourceKind utcSource = UtcSourceKind::Unknown;
+  if (!recordTimestamps_) {
+    record.recordedUtc = RecordedUtc::Disabled;
+  } else if (utc_ && utc_->utcNow(utcMs, utcSource) && utcSource == UtcSourceKind::Ntp) {
+    record.recordedUtc = RecordedUtc::Ntp;
+    record.recordedUtcMs = utcMs;
+  } else {
+    record.recordedUtc = RecordedUtc::Unsynced;
+  }
   source.describeChannels(record.schema);
   for (uint8_t c = 0; c < record.channelCount; ++c) {
     RecordChannel &ch = record.channels[c];

@@ -5,6 +5,7 @@
 
 #include "BardBoxBuffer.h"
 #include "BardBoxConnectivity.h"
+#include "BardBoxTime.h"
 
 namespace bbcore {
 
@@ -21,8 +22,14 @@ namespace bbcore {
 // INFO), kept separate from the record, which describes measurement time.
 //
 // Returns the body length, or 0 if it does not fit in cap.
+//
+// The record carries "recorded_utc" (UTC when the record was created at its
+// recording boundary, else null) and "recorded_utc_status" ("ntp",
+// "unsynced", "disabled" or "not_recorded"); this is
+// neither acquisition time ("acquired_time" stays "unknown") nor upload time.
+// device_status also carries the sender's Time state when `time` is given.
 size_t serializeDeliveryCandidate(const Record &record, const QueueToken &token, char *out, size_t cap,
-                                  const ConnectivityStatus *sender = nullptr);
+                                  const ConnectivityStatus *sender = nullptr, const TimeStatus *time = nullptr);
 
 // Largest body the candidate can produce for kMaxChannels channels with the
 // longest names and units registration accepts (units may need escaping).

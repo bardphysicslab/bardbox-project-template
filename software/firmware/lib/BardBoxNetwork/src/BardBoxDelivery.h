@@ -6,6 +6,7 @@
 #include "BardBoxBuffer.h"
 #include "BardBoxConnectivity.h"
 #include "BardBoxPayload.h"
+#include "BardBoxTime.h"
 
 namespace bbcore {
 
@@ -90,7 +91,8 @@ class DeliveryMailbox {
 // codec keep a single owner.
 class DeliveryBufferSide {
  public:
-  void step(BardBoxBuffer &buffer, DeliveryMailbox &mailbox);
+  // time: the Time owner's snapshot for device_status (may be null).
+  void step(BardBoxBuffer &buffer, DeliveryMailbox &mailbox, const TimeStatus *time = nullptr);
 
  private:
   Record record_;

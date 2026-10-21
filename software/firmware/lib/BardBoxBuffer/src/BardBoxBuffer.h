@@ -68,6 +68,12 @@ class BardBoxBuffer {
   // recording nothing, if no valid attribution was set.
   bool begin(uint32_t nowMs, uint32_t bootId, StorageAdapter *storage, uint32_t generationSeed);
   bool started() const { return started_; }
+  // UTC for record creation. With timestamps off, records are marked
+  // Disabled and the source is not asked; with no source they are Unsynced.
+  void setUtcSource(UtcSource *utc, bool recordTimestamps) {
+    utc_ = utc;
+    recordTimestamps_ = recordTimestamps;
+  }
 
   static constexpr uint32_t recordingIntervalMs() {
     return static_cast<uint32_t>(BARDBOX_RECORDING_INTERVAL_S) * 1000UL;
@@ -104,6 +110,8 @@ class BardBoxBuffer {
   bool started_ = false;
   bool durable_ = false;
   StorageAdapter *storage_ = nullptr;
+  UtcSource *utc_ = nullptr;
+  bool recordTimestamps_ = true;
   uint32_t bootId_ = 0;
   uint32_t nextDueMs_ = 0;
   uint32_t recordSeq_ = 0;

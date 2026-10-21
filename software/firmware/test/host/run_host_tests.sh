@@ -9,7 +9,7 @@ mkdir -p "$out"
 CXX=${CXX:-c++}
 inc="-I$here/stub"
 srcs=""
-for lib in BardBoxSerial BardBoxBuffer BardBoxNetwork BardBoxMeasurements BardBoxSettings BardBoxInterface; do
+for lib in BardBoxSerial BardBoxBuffer BardBoxNetwork BardBoxMeasurements BardBoxSettings BardBoxTime BardBoxInterface; do
   inc="$inc -I$fw/lib/$lib/src"
   for f in "$fw/lib/$lib/src"/*.cpp; do [ -e "$f" ] && srcs="$srcs $f"; done
 done
@@ -64,9 +64,18 @@ if command -v python3 >/dev/null 2>&1; then
   python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("sample delivery body is valid JSON:", d["format"], "fw=" + d["firmware"], "queue=%s/%s" % (d["queue"]["generation"], d["queue"]["seq"]), "channels=%d" % len(d["channels"]))' "$out/delivery_sample.json"
 fi
 
+# Time and record UTC timestamps (template#49), with record timestamps on and off.
+for stamps in 1 0; do
+  $CXX -std=c++11 -Wall -Wextra -Werror -DBARDBOX_RECORDING_INTERVAL_S=5 -DBARDBOX_TIME_RECORD_TIMESTAMPS=$stamps \
+    '-DBARDBOX_NETWORK_ENDPOINT="https://receiver.invalid/upload"' \
+    -DBARDBOX_NETWORK_RETRY_BASE_MS=200 -DBARDBOX_NETWORK_RETRY_MAX_MS=1600 -DBARDBOX_NETWORK_IDLE_POLL_MS=100 \
+    -I"$here" $inc $srcs "$here/test_time.cpp" -o "$out/test_time_$stamps"
+  "$out/test_time_$stamps"
+done
+
 # Actual HTTPS adapter policy with controlled Wi-Fi/DNS/TLS I/O, not a socket.
 $CXX -std=c++11 -Wall -Wextra -Werror -I"$fw/lib/BardBoxNetwork/src" \
-  -I"$fw/lib/BardBoxBuffer/src" "$fw/lib/BardBoxNetwork/src/BardBoxWifiTransport.cpp" \
+  -I"$fw/lib/BardBoxBuffer/src" -I"$fw/lib/BardBoxTime/src" "$fw/lib/BardBoxNetwork/src/BardBoxWifiTransport.cpp" \
   "$here/test_wifi.cpp" -o "$out/test_wifi"
 "$out/test_wifi"
 
@@ -77,5 +86,6 @@ $CXX -std=c++11 -Wall -Wextra -Werror -DARDUINO -DESP_PLATFORM \
   '-DBARDBOX_NETWORK_CA_PEM="synthetic trust anchor"' \
   -I"$here/wifi_stub" -I"$fw/lib/BardBoxNetwork/src" -I"$fw/lib/BardBoxBuffer/src" \
   "$fw/lib/BardBoxNetwork/src/BardBoxWifiTransport.cpp" \
+  -I"$fw/lib/BardBoxTime/src" "$fw/lib/BardBoxTime/src/BardBoxEsp32Sntp.cpp" \
   "$fw/lib/BardBoxNetwork/src/BardBoxEsp32Wifi.cpp" "$here/test_esp32_wifi.cpp" -o "$out/test_esp32_wifi"
 "$out/test_esp32_wifi"

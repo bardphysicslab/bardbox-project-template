@@ -36,6 +36,7 @@ software/firmware/
   lib/BardBoxSerial/                 serial commands and wire forms
   lib/BardBoxNetwork/                Wi-Fi/HTTPS, delivery policy/mailbox and candidate JSON
   lib/BardBoxSettings/               saved UID and Wi-Fi settings (override config.h, next boot)
+  lib/BardBoxTime/                   UTC over NTP (one owner), record-creation timestamps
   test/host/                         host tests and demo (simulated)
 ```
 
@@ -129,7 +130,12 @@ updates can keep the previous image and the saved data. Network OTA, with signed
 images, rollout, health confirmation and rollback, is a later milestone and is not
 implemented by this layout.
 
-## Synthetic Wi-Fi demo
+## Synthetic Wi-Fi demos
+
+[Counter with UTC record timestamps](examples/counter/README.md):
+`pio run -e feather_s3_counter_test` compiles it.
+
+
 
 [Publish 42 through the API](examples/wifi42/README.md) is an isolated test sketch
 and optional HTTPS receiver. `pio run -e feather_s3_wifi42_test` compiles it;

@@ -59,6 +59,19 @@
 // lib/BardBoxNetwork/src/BardBoxNetworkConfig.h; omitted values use those defaults.
 
 // ---------------------------------------------------------------------------
+// Time (BardBoxTime) -- UTC over NTP; no RTC yet
+// ---------------------------------------------------------------------------
+
+// UTC timestamps on new records: 1 (default) or 0. Off only stops stamping new
+// records ("recorded_utc_status":"disabled"); NTP, the clock and HTTPS
+// certificate checks keep working. Saved records keep what they were made with.
+#define BARDBOX_TIME_RECORD_TIMESTAMPS 1
+
+// NTP server and refresh interval (seconds, 60..86400).
+#define BARDBOX_TIME_NTP_SERVER "pool.ntp.org"
+#define BARDBOX_TIME_REFRESH_S 3600
+
+// ---------------------------------------------------------------------------
 // Buffer (BardBoxBuffer) -- persistent queue on LittleFS (host-tested only)
 // ---------------------------------------------------------------------------
 
